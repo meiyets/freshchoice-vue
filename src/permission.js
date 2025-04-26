@@ -16,21 +16,27 @@ const whiteList = ['/login', '/register']
 const isWhiteList = (path) => {
   return whiteList.some(pattern => isPathMatch(pattern, path))
 }
-
+// 路由守卫，在路由跳转之前进行一些权限验证和状态设置
+// to: 即将要进入的目标路由对象
+// from: 当前导航正要离开的路由
+// next: 一个函数，用于控制路由的导航行为
 router.beforeEach((to, from, next) => {
   NProgress.start()
+  // 检查是否存在token
   if (getToken()) {
     to.meta.title && useSettingsStore().setTitle(to.meta.title)
     /* has token*/
+    // 如果是登录页面，则重定向到主页
     if (to.path === '/login') {
       next({ path: '/' })
       NProgress.done()
     } else if (isWhiteList(to.path)) {
       next()
     } else {
+      // 检查用户权限
       if (useUserStore().roles.length === 0) {
         isRelogin.show = true
-        // 判断当前用户是否已拉取完user_info信息
+        // 获取用户信息
         useUserStore().getInfo().then(() => {
           isRelogin.show = false
           usePermissionStore().generateRoutes().then(accessRoutes => {

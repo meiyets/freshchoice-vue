@@ -102,7 +102,9 @@ watch(route, (newRoute) => {
     redirect.value = newRoute.query && newRoute.query.redirect;
 }, { immediate: true });
 
+/** 处理登录逻辑 */
 function handleLogin() {
+  // 表单验证
   proxy.$refs.loginRef.validate(valid => {
     if (valid) {
       loading.value = true;
@@ -118,7 +120,9 @@ function handleLogin() {
         Cookies.remove("rememberMe");
       }
       // 调用action的登录方法
+      // userStore为外部导入组件
       userStore.login(loginForm.value).then(() => {
+        // 获取路由查询参数
         const query = route.query;
         const otherQueryParams = Object.keys(query).reduce((acc, cur) => {
           if (cur !== "redirect") {
@@ -126,6 +130,7 @@ function handleLogin() {
           }
           return acc;
         }, {});
+        // 登陆成功后，根据redirect参数或默认跳转到首页
         router.push({ path: redirect.value || "/", query: otherQueryParams });
       }).catch(() => {
         loading.value = false;

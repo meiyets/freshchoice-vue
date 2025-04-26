@@ -21,11 +21,15 @@ const service = axios.create({
 })
 
 // request拦截器
+// config就是请求发出时携带的参数（url、headers...）
 service.interceptors.request.use(config => {
   // 是否需要设置 token
+  // 配置中isToken为false，那么返回true
+  // 这里实际上是一个相反的逻辑
   const isToken = (config.headers || {}).isToken === false
   // 是否需要防止数据重复提交
   const isRepeatSubmit = (config.headers || {}).repeatSubmit === false
+  // 能够得到token + isToken为false
   if (getToken() && !isToken) {
     config.headers['Authorization'] = 'Bearer ' + getToken() // 让每个请求携带自定义token 请根据实际情况自行修改
   }
