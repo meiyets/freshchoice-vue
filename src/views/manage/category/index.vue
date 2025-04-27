@@ -124,7 +124,12 @@
         show-overflow-tooltip
       />
       <!-- 分类来源(0:系统 1:商家) -->
-      <el-table-column label="分类来源" align="center" prop="sourceType" sortable>
+      <el-table-column
+        label="分类来源"
+        align="center"
+        prop="sourceType"
+        sortable
+      >
         <template #default="scope">
           <dict-tag
             :options="category_soure_type"
@@ -133,7 +138,12 @@
         </template>
       </el-table-column>
       <!-- 审核状态(0:待审核 1:已通过 2:已拒绝) -->
-      <el-table-column label="审核状态" align="center" prop="auditStatus" sortable>
+      <el-table-column
+        label="审核状态"
+        align="center"
+        prop="auditStatus"
+        sortable
+      >
         <template #default="scope">
           <dict-tag
             :options="category_audit_comment"
@@ -155,7 +165,9 @@
         sortable
       >
         <template #default="scope">
-          <span>{{ parseTime(scope.row.updateTime, "{y}-{m}-{d} {h}:{i}:{s}") }}</span>
+          <span>{{
+            parseTime(scope.row.updateTime, "{y}-{m}-{d} {h}:{i}:{s}")
+          }}</span>
         </template>
       </el-table-column>
       <!-- 操作 -->
@@ -254,7 +266,6 @@ const title = ref("");
 const daterangeCreateTime = ref([]);
 const daterangeUpdateTime = ref([]);
 
-
 /** 自定义表单验证函数 - 分类名称
  * @param {Object} rule - 当前验证规则对象
  * @param {string} value - 当前被验证的字段值
@@ -296,8 +307,8 @@ const data = reactive({
   // 表单校验规则：增加/编辑分类对话框
   rules: {
     categoryName: [
-      // { required: true, message: "分类名称不能为空", trigger: "blur" },
-      // { validator: validateCategoryName, trigger: "blur"}
+      { required: true, message: "分类名称不能为空", trigger: "blur" },
+      { validator: validateCategoryName, trigger: "blur" },
     ],
     sourceType: [
       {
@@ -325,8 +336,6 @@ const data = reactive({
 });
 
 const { queryParams, form, rules } = toRefs(data);
-
-
 
 /** 查询分类管理列表 */
 function getList() {
