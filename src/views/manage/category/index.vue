@@ -124,7 +124,7 @@
         show-overflow-tooltip
       />
       <!-- 分类来源(0:系统 1:商家) -->
-      <el-table-column label="分类来源" align="center" prop="sourceType">
+      <el-table-column label="分类来源" align="center" prop="sourceType" sortable>
         <template #default="scope">
           <dict-tag
             :options="category_soure_type"
@@ -133,7 +133,7 @@
         </template>
       </el-table-column>
       <!-- 审核状态(0:待审核 1:已通过 2:已拒绝) -->
-      <el-table-column label="审核状态" align="center" prop="auditStatus">
+      <el-table-column label="审核状态" align="center" prop="auditStatus" sortable>
         <template #default="scope">
           <dict-tag
             :options="category_audit_comment"
@@ -144,7 +144,7 @@
       <!-- 审核备注 -->
       <el-table-column label="审核备注" align="center" prop="auditComment" />
       <!-- 更新人 -->
-      <el-table-column label="最后更新者" align="center" prop="updateBy" />
+      <el-table-column label="最后更新人" align="center" prop="updateBy" />
       <!-- 更新时间 
         设置为排序字段-->
       <el-table-column
@@ -155,7 +155,7 @@
         sortable
       >
         <template #default="scope">
-          <span>{{ parseTime(scope.row.updateTime, "{y}-{m}-{d}") }}</span>
+          <span>{{ parseTime(scope.row.updateTime, "{y}-{m}-{d} {h}:{i}:{s}") }}</span>
         </template>
       </el-table-column>
       <!-- 操作 -->
