@@ -56,42 +56,42 @@
 
     <!-- 功能按钮 -->
     <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
-        <el-button
-          type="primary"
-          plain
-          icon="Plus"
-          @click="handleAdd"
-          v-hasPermi="['manage:category:add']"
-          >新增</el-button
-        >
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="success"
-          plain
-          icon="Edit"
-          :disabled="single"
-          @click="handleUpdate"
-          v-hasPermi="['manage:category:edit']"
-          >修改</el-button
-        >
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="danger"
-          plain
-          icon="Delete"
-          :disabled="multiple"
-          @click="handleDelete"
-          v-hasPermi="['manage:category:remove']"
-          >删除</el-button
-        >
+      <!-- 若依生成的按钮位于左侧 -->
+      <el-col :span="8">
+        <div class="left-buttons">
+          <el-button
+            type="primary"
+            plain
+            icon="Plus"
+            @click="handleAdd"
+            v-hasPermi="['manage:category:add']"
+            >新增</el-button
+          >
+
+          <el-button
+            type="success"
+            plain
+            icon="Edit"
+            :disabled="single"
+            @click="handleUpdate"
+            v-hasPermi="['manage:category:edit']"
+            >修改</el-button
+          >
+          <el-button
+            type="danger"
+            plain
+            icon="Delete"
+            :disabled="multiple"
+            @click="handleDelete"
+            v-hasPermi="['manage:category:remove']"
+            >删除</el-button
+          >
+        </div>
       </el-col>
 
-      <!-- 开始审核按钮 --> 
-      <el-col :span="1.5">
-        <el-badge :value="auditTotal" >
+      <!-- 开始审核按钮 -->
+      <el-col :span="8" class="center-col">
+        <el-badge :value="auditTotal">
           <el-button
             type="warning"
             plain
@@ -602,5 +602,16 @@ getAuditList();
   justify-content: center;
   /* 设置按钮之间的间距为8px */
   gap: 8px;
+}
+/* 若依的三个按钮 */
+.left-buttons {
+  display: flex;
+  gap: 10px;
+}
+/*让自定义按钮居中布局 */
+.center-col {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 </style>
