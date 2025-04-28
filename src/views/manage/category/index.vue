@@ -88,16 +88,22 @@
           >删除</el-button
         >
       </el-col>
+
+      <!-- 开始审核按钮 --> 
       <el-col :span="1.5">
-        <el-button
-          type="warning"
-          plain
-          icon="Download"
-          @click="handleExport"
-          v-hasPermi="['manage:category:export']"
-          >导出</el-button
-        >
+        <el-badge :value="auditTotal" >
+          <el-button
+            type="warning"
+            plain
+            icon="List"
+            @click="openAuditDialog"
+            v-hasRole="['admin', 'operator']"
+            >开始审核</el-button
+          >
+        </el-badge>
       </el-col>
+
+      <!-- :showSearch绑定了当前组件的showSearch属性 -->
       <right-toolbar
         v-model:showSearch="showSearch"
         @queryTable="getList"
@@ -206,7 +212,7 @@
       @pagination="getList"
     />
 
-    <!-- 添加或修改分类管理对话框 -->
+    <!-- 添加/修改对话框 -->
     <el-dialog :title="title" v-model="open" width="500px" append-to-body>
       <!-- 构造表单：rules校验每个form-item的prop -->
       <el-form
@@ -234,6 +240,52 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 审核对话框 -->
+    <el-dialog :title="title" v-model="auditOpen" width="700px" append-to-body>
+      <el-table v-loading="auditLoading" :data="auditList">
+        <el-table-column label="序号" width="55" align="center" type="index" />
+        <el-table-column label="分类名称" align="center" prop="categoryName" />
+        <el-table-column label="分类描述" align="center" prop="categoryDesc" />
+
+        <!-- 操作 -->
+        <el-table-column
+          label="审查"
+          align="center"
+          class-name="small-padding fixed-width"
+        >
+          <template #default="scope">
+            <div class="audit-actions">
+              <!-- 第一行：接受/拒绝按钮-->
+              <div class="button-group">
+                <el-button
+                  type="success"
+                  icon="Check"
+                  @click="handleAudit(scope.row, true)"
+                  v-hasRole="['admin', 'operator']"
+                  >接受</el-button
+                >
+                <el-button
+                  type="danger"
+                  icon="Close"
+                  @click="handleAudit(scope.row, false)"
+                  v-hasRole="['admin', 'operator']"
+                  >拒绝</el-button
+                >
+              </div>
+              <!-- 第二行：审核备注输入框 -->
+              <el-input
+                v-model="scope.row.auditComment"
+                placeholder="若予以拒绝，请输入备注"
+                size="small"
+                type="textarea"
+                :rows="2"
+              />
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
   </div>
 </template>
 
@@ -245,6 +297,7 @@ import {
   delCategory,
   addCategory,
   updateCategory,
+  audit,
 } from "@/api/manage/category";
 
 const { proxy } = getCurrentInstance();
@@ -255,16 +308,32 @@ const { category_soure_type, category_audit_comment } = proxy.useDict(
 
 // 数据表格内容
 const categoryList = ref([]);
-const open = ref(false);
-const loading = ref(true);
-const showSearch = ref(true);
+// 审查数据表单数据
+const auditList = ref([]);
+
+// 存储数据的ids（由多选框传递）
 const ids = ref([]);
-const single = ref(true);
-const multiple = ref(true);
+// 存储总记录数
 const total = ref(0);
+// 存储待审查总记录数
+const auditTotal = ref(0);
+
+// 对话框标题
 const title = ref("");
-const daterangeCreateTime = ref([]);
-const daterangeUpdateTime = ref([]);
+
+// 新增/修改对话框开关
+const open = ref(false);
+// 审核对话框开关
+const auditOpen = ref(false);
+
+// 标记：是否显示主视图加载
+const loading = ref(true);
+// 标记：是否显示搜索栏
+const showSearch = ref(true);
+// 标记：是否仅选中一条数据
+const single = ref(true);
+// 标记：是否选中多条数据
+const multiple = ref(true);
 
 /** 自定义表单验证函数 - 分类名称
  * @param {Object} rule - 当前验证规则对象
@@ -304,6 +373,13 @@ const data = reactive({
     sourceType: null,
     auditStatus: null,
   },
+  // 审查查询参数（进查询来源为商家且未审核的分类）
+  auditParams: {
+    pageNum: 1,
+    pageSize: 10,
+    sourceType: 1,
+    auditStatus: 0,
+  },
   // 表单校验规则：增加/编辑分类对话框
   rules: {
     categoryName: [
@@ -335,21 +411,14 @@ const data = reactive({
   },
 });
 
-const { queryParams, form, rules } = toRefs(data);
+const { queryParams, form, rules, auditParams } = toRefs(data);
 
 /** 查询分类管理列表 */
 function getList() {
   loading.value = true;
-  queryParams.value.params = {};
-  if (null != daterangeCreateTime && "" != daterangeCreateTime) {
-    queryParams.value.params["beginCreateTime"] = daterangeCreateTime.value[0];
-    queryParams.value.params["endCreateTime"] = daterangeCreateTime.value[1];
-  }
-  if (null != daterangeUpdateTime && "" != daterangeUpdateTime) {
-    queryParams.value.params["beginUpdateTime"] = daterangeUpdateTime.value[0];
-    queryParams.value.params["endUpdateTime"] = daterangeUpdateTime.value[1];
-  }
+
   listCategory(queryParams.value).then((response) => {
+    // 获取实体数据
     categoryList.value = response.rows;
     total.value = response.total;
     loading.value = false;
@@ -375,6 +444,9 @@ function reset() {
     updateTime: null,
     createBy: null,
     updateBy: null,
+    params: {
+      isAccept: null,
+    },
   };
   proxy.resetForm("categoryRef");
 }
@@ -387,8 +459,6 @@ function handleQuery() {
 
 /** 重置按钮操作 */
 function resetQuery() {
-  daterangeCreateTime.value = [];
-  daterangeUpdateTime.value = [];
   proxy.resetForm("queryRef");
   handleQuery();
 }
@@ -454,18 +524,59 @@ function handleDelete(row) {
     .catch(() => {});
 }
 
-/** 导出按钮操作 */
-function handleExport() {
-  proxy.download(
-    "manage/category/export",
-    {
-      ...queryParams.value,
+/**
+ * 获取审查列表
+ * 用于全局初始化，后续会自动更新
+ */
+function getAuditList() {
+  //此处并没有设置加载标识
+  listCategory(auditParams.value).then((response) => {
+    auditList.value = response.rows;
+    auditTotal.value = response.total;
+  });
+}
+
+/** 开始审核按钮操作
+ * 获取一次当前的待审查数据，并打开审查对话框
+ */
+function openAuditDialog() {
+  // 清空表单
+  reset();
+  // 打开审查对话框
+  auditOpen.value = true;
+  // 修改对话框标题
+  title.value = "待审查列表";
+}
+
+/**
+ * 审查按钮：审查通过
+ * 用form承载数据，向后端发起请求
+ */
+function handleAudit(row, isAccept) {
+  // 以防万一先清空表单
+  reset();
+  // 为表单赋值（当前行数据 + 审查标记）
+  form.value = {
+    ...row,
+    params: {
+      isAccept: isAccept,
     },
-    `category_${new Date().getTime()}.xlsx`
-  );
+  };
+  // 发送请求
+  audit(form.value).then((response) => {
+    // 提示信息
+    proxy.$modal.msgSuccess("操作完成");
+    // 从待审查列表中删除当前数据
+    auditList.value = auditList.value.filter(
+      (item) => item.categoryId !== row.categoryId
+    );
+    // 重新加载主视图表格
+    getList();
+  });
 }
 
 getList();
+getAuditList();
 </script>
 
 <!-- CSS样式 -->
@@ -473,5 +584,23 @@ getList();
 /* 搜索栏中下拉框样式 */
 .query-select {
   width: 180px;
+}
+/* 审核操作区样式 */
+.audit-actions {
+  /* 使用flex布局，实现灵活的容器布局 */
+  display: flex;
+  /* 设置主轴方向为垂直方向，使子元素垂直排列 */
+  flex-direction: column;
+  /* 设置子元素之间的间距为8px */
+  gap: 8px;
+}
+
+.button-group {
+  /* 使用flex布局，实现按钮组的水平排列 */
+  display: flex;
+  /* 设置子元素（按钮）在主轴上居中对齐 */
+  justify-content: center;
+  /* 设置按钮之间的间距为8px */
+  gap: 8px;
 }
 </style>
