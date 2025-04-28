@@ -537,7 +537,7 @@ function getAuditList() {
 }
 
 /** 开始审核按钮操作
- * 获取一次当前的待审查数据，并打开审查对话框
+ * 打开审查对话框
  */
 function openAuditDialog() {
   // 清空表单
@@ -570,6 +570,7 @@ function handleAudit(row, isAccept) {
     auditList.value = auditList.value.filter(
       (item) => item.categoryId !== row.categoryId
     );
+    auditTotal.value--;
     // 重新加载主视图表格
     getList();
   });
