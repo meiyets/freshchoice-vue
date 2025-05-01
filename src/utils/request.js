@@ -96,7 +96,8 @@ service.interceptors.response.use(res => {
       }).catch(() => {
         isRelogin.show = false;
       });
-    }
+      }
+      // 下面展示了后端抛出的异常，是如何以消息弹窗形式展示的
       return Promise.reject('无效的会话，或者会话已过期，请重新登录。')
     } else if (code === 500) {
       ElMessage({ message: msg, type: 'error' })

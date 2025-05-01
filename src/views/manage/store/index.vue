@@ -149,29 +149,47 @@
       <!-- 创建人 -->
       <el-table-column label="创建人" align="center" prop="createBy" />
 
-      <!-- 功能按钮 -->
+      <!-- 操作列表 -->
       <el-table-column
         label="操作"
         align="center"
         class-name="small-padding fixed-width"
       >
+        <!-- 表头信息 -->
+        <template #header>
+          <div>
+            <span>操作</span>
+            <div class="operation-tips">
+              <i class="ban-mini-icon"></i>封禁
+              <i class="terminate-mini-icon"></i>删除
+            </div>
+          </div>
+        </template>
+
+        <!-- 具体操作 -->
         <template #default="scope">
+          <!-- 封禁店铺 -->
           <el-button
             link
-            type="primary"
-            icon="Edit"
-            @click="handleUpdate(scope.row)"
+            type="danger"
+            @click="handleBan(scope.row)"
             v-hasPermi="['manage:store:edit']"
-            >修改</el-button
+            :disabled="scope.row.storeStatus === 3"
           >
+            <i
+              :class="scope.row.storeStatus === 3 ? 'baned-icon' : 'ban-icon'"
+            ></i>
+          </el-button>
+
+          <!-- 删除店铺 -->
           <el-button
             link
             type="primary"
-            icon="Delete"
             @click="handleDelete(scope.row)"
             v-hasPermi="['manage:store:remove']"
-            >删除</el-button
           >
+            <i class="terminate-icon"></i>
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -213,6 +231,27 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 对话框：填写封禁理由 -->
+    <el-dialog v-model="banOpen" :title="title">
+      <!-- 待提交表单项 -->
+      <el-form ref="storeRef" :model="form" :rules="rules" label-width="80px">
+        <el-form-item label="封禁理由" prop="banComment">
+          <el-input
+            v-model="form.banComment"
+            type="textarea"
+            placeholder="请输入封禁理由"
+            :rows="4"
+          />
+        </el-form-item>
+      </el-form>
+
+      <!-- 底部按钮 -->
+      <template #footer>
+        <el-button type="primary" @click="submitBanForm">确 定</el-button>
+        <el-button @click="cancel">取 消</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -224,6 +263,7 @@ import {
   delStore,
   addStore,
   updateStore,
+  ban,
 } from "@/api/manage/store";
 
 // 获取全局代理对象
@@ -238,9 +278,13 @@ const storeList = ref([]);
 const total = ref(0);
 // 对话框标题
 const title = ref("");
+// 封禁理由固定前缀
+const banCommentPrefix = ref("Ban Comment:");
 
 // 对话框开关
 const open = ref(false);
+// 封禁对话框开关
+const banOpen = ref(false);
 
 // 标记：是否显示主视图加载
 const loading = ref(true);
@@ -257,6 +301,7 @@ const multiple = ref(true);
 const data = reactive({
   // 表单数据
   form: {},
+
   // 查询参数
   // 若存在于搜索框，则与之关联，（好像）也就导致没法用于主视图数据以外的数据查询
   queryParams: {
@@ -267,6 +312,7 @@ const data = reactive({
     storeStatus: null,
     contact: null,
   },
+
   // 表单校验规则：增加/编辑店铺对话框
   rules: {
     storeLogo: [
@@ -274,6 +320,19 @@ const data = reactive({
     ],
     storeName: [
       { required: true, message: "店铺名称不能为空", trigger: "blur" },
+    ],
+    banComment: [
+      { required: true, message: "封禁理由不能为空", trigger: "blur" },
+      {
+        validator: (rule, value, callback) => {
+          if (value && value.trim().length === 0) {
+            callback(new Error("封禁理由不能全为空格"));
+          } else {
+            callback();
+          }
+        },
+        trigger: "blur",
+      },
     ],
   },
 });
@@ -294,6 +353,7 @@ function getList() {
 // 取消按钮
 function cancel() {
   open.value = false;
+  banOpen.value = false;
   reset();
 }
 
@@ -314,6 +374,8 @@ function reset() {
     updateTime: null,
     createBy: null,
     updateBy: null,
+    // 附加：封禁理由
+    banComment: null,
   };
   proxy.resetForm("storeRef");
 }
@@ -344,17 +406,6 @@ function handleAdd() {
   title.value = "添加店铺管理";
 }
 
-/** 修改按钮操作 */
-function handleUpdate(row) {
-  reset();
-  const _storeId = row.storeId || ids.value;
-  getStore(_storeId).then((response) => {
-    form.value = response.data;
-    open.value = true;
-    title.value = "修改店铺管理";
-  });
-}
-
 /** 提交按钮 */
 function submitForm() {
   proxy.$refs["storeRef"].validate((valid) => {
@@ -370,6 +421,7 @@ function submitForm() {
           proxy.$modal.msgSuccess("新增成功");
           open.value = false;
           getList();
+          reset();
         });
       }
     }
@@ -402,6 +454,38 @@ function handleExport() {
   );
 }
 
+/** 点击”封禁店铺按钮“ */
+function handleBan(row) {
+  // 打开封禁对话框，填写封禁理由
+  title.value = "店铺封禁理由";
+  form.value = row;
+  banOpen.value = true;
+  console.log(form.value);
+}
+
+/** 提交封禁理由 */
+function submitBanForm() {
+  proxy.$refs["storeRef"].validate((valid) => {
+    if (valid) {
+      proxy.$modal
+        .confirm("真的要封禁[ " + form.value.storeName + " ]吗？")
+        .then(() =>
+          ban({
+            storeId: form.value.storeId,
+            banComment: banCommentPrefix.value + form.value.banComment,
+          })
+        )
+        .then(() => {
+          proxy.$modal.msgSuccess("封禁成功");
+          banOpen.value = false;
+          getList();
+          reset();
+        })
+        .catch(() => {});
+    }
+  });
+}
+
 // 初始化列表数据
 getList();
 </script>
@@ -409,5 +493,58 @@ getList();
 <style scoped>
 .query-select {
   width: 180px;
+}
+
+/* 封禁图标 */
+.ban-icon {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  margin-right: 3px;
+  background: url("@/assets/icons/my_svg/ban.svg") no-repeat center;
+  background-size: contain;
+}
+.baned-icon {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  margin-right: 3px;
+  background: url("@/assets/icons/my_svg/baned.svg") no-repeat center;
+  background-size: contain;
+}
+.terminate-icon {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  margin-right: 3px;
+  background: url("@/assets/icons/my_svg/terminate.svg") no-repeat center;
+  background-size: contain;
+}
+/**封禁图标mini */
+.ban-mini-icon {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  background: url("@/assets/icons/my_svg/ban.svg") no-repeat center;
+  background-size: contain;
+}
+.terminate-mini-icon {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  background: url("@/assets/icons/my_svg/terminate.svg") no-repeat center;
+  background-size: contain;
+}
+
+/**操作提示表头：封禁图标、删除图标 */
+.operation-tips {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
 }
 </style>

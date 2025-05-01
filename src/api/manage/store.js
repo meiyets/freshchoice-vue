@@ -42,3 +42,12 @@ export function delStore(storeId) {
     method: 'delete'
   })
 }
+
+// 封禁店铺
+export function ban(storeBanDTO) {
+  return request({
+    url: '/manage/store/ban',
+    method: 'put',
+    data: storeBanDTO
+  })
+}
