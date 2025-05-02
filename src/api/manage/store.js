@@ -51,3 +51,11 @@ export function ban(storeBanDTO) {
     data: storeBanDTO
   })
 }
+
+export function audit(data) {
+  return request({
+    url: '/manage/store/audit',
+    method: 'put',
+    data: data
+  })
+}

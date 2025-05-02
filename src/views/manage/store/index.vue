@@ -59,52 +59,65 @@
 
     <!-- 功能按钮 -->
     <el-row :gutter="10" class="mb8">
-      <!-- 新增按钮 -->
-      <el-col :span="1.5">
-        <el-button
-          type="primary"
-          plain
-          icon="Plus"
-          @click="handleAdd"
-          v-hasPermi="['manage:store:add']"
-          >新增</el-button
-        >
+      <!-- 模板按钮 -->
+      <el-col :span="8">
+        <!-- 新增按钮 -->
+        <div class="left-buttons">
+          <el-button
+            type="primary"
+            plain
+            icon="Plus"
+            @click="handleAdd"
+            v-hasPermi="['manage:store:add']"
+            >新增</el-button
+          >
+          <!-- 修改按钮 -->
+          <el-button
+            type="success"
+            plain
+            icon="Edit"
+            :disabled="single"
+            @click="handleUpdate"
+            v-hasPermi="['manage:store:edit']"
+            >修改</el-button
+          >
+          <!-- 删除按钮 -->
+
+          <el-button
+            type="danger"
+            plain
+            icon="Delete"
+            :disabled="multiple"
+            @click="handleDelete"
+            v-hasPermi="['manage:store:remove']"
+            >删除</el-button
+          >
+          <!-- 导出按钮 -->
+          <el-button
+            type="warning"
+            plain
+            icon="Download"
+            @click="handleExport"
+            v-hasPermi="['manage:store:export']"
+            >导出</el-button
+          >
+        </div>
       </el-col>
-      <!-- 修改按钮 -->
-      <el-col :span="1.5">
-        <el-button
-          type="success"
-          plain
-          icon="Edit"
-          :disabled="single"
-          @click="handleUpdate"
-          v-hasPermi="['manage:store:edit']"
-          >修改</el-button
-        >
+
+      <!-- 审核按钮--居中 -->
+      <el-col :span="8" class="center-col">
+        <el-badge :value="auditTotal">
+          <el-button
+            type="warning"
+            plain
+            icon="List"
+            @click="handleAuditOpen"
+            v-hasRole="['admin', 'operator']"
+            >开始审核</el-button
+          >
+        </el-badge>
       </el-col>
-      <!-- 删除按钮 -->
-      <el-col :span="1.5">
-        <el-button
-          type="danger"
-          plain
-          icon="Delete"
-          :disabled="multiple"
-          @click="handleDelete"
-          v-hasPermi="['manage:store:remove']"
-          >删除</el-button
-        >
-      </el-col>
-      <!-- 导出按钮 -->
-      <el-col :span="1.5">
-        <el-button
-          type="warning"
-          plain
-          icon="Download"
-          @click="handleExport"
-          v-hasPermi="['manage:store:export']"
-          >导出</el-button
-        >
-      </el-col>
+
       <!-- 搜索条显示控制工具栏 -->
       <right-toolbar
         v-model:showSearch="showSearch"
@@ -141,9 +154,18 @@
       <!-- 店铺状态 -->
       <el-table-column label="店铺状态" align="center" prop="storeStatus">
         <template #default="scope">
-          <dict-tag :options="store_status" :value="scope.row.storeStatus" />
+          <div class="status-cell">
+            <dict-tag :options="store_status" :value="scope.row.storeStatus" />
+            <el-badge
+              is-dot
+              type="danger"
+              v-if="scope.row.auditFlag === 1 && (scope.row.storeStatus === 0 || scope.row.storeStatus === 3)"
+              class="audit-dot"
+            />
+          </div>
         </template>
       </el-table-column>
+
       <!-- 联系电话 -->
       <el-table-column label="联系电话" align="center" prop="contact" />
       <!-- 创建人 -->
@@ -173,7 +195,7 @@
             link
             type="danger"
             @click="handleBan(scope.row)"
-            v-hasPermi="['manage:store:edit']"
+            v-hasRole="['admin', 'operator']"
             :disabled="scope.row.storeStatus === 3"
           >
             <i
@@ -252,6 +274,56 @@
         <el-button @click="cancel">取 消</el-button>
       </template>
     </el-dialog>
+
+    <!-- 审核对话框 -->
+    <el-dialog :title="title" v-model="auditOpen" width="700px" append-to-body>
+      <el-table :data="auditList">
+        <el-table-column label="序号" width="55" align="center" type="index" />
+        <el-table-column label="店铺名称" align="center" prop="storeName" />
+        <el-table-column label="店铺状态" align="center" prop="storeStatus">
+          <template #default="scope">
+            <dict-tag :options="store_status" :value="scope.row.storeStatus" />
+          </template>
+        </el-table-column>
+
+        <!-- 操作 -->
+        <el-table-column
+          label="审查"
+          align="center"
+          class-name="small-padding fixed-width"
+        >
+          <template #default="scope">
+            <div class="audit-actions">
+              <!-- 第一行：接受/拒绝按钮-->
+              <div class="button-group">
+                <el-button
+                  type="success"
+                  icon="Check"
+                  @click="handleAudit(scope.row, true)"
+                  v-hasRole="['admin', 'operator']"
+                  >接受</el-button
+                >
+                <el-button
+                  type="danger"
+                  icon="Close"
+                  @click="handleAudit(scope.row, false)"
+                  v-hasRole="['admin', 'operator']"
+                  >拒绝</el-button
+                >
+              </div>
+              <!-- 第二行：审核备注输入框 -->
+              <el-input
+                v-model="scope.row.auditComment"
+                placeholder="若予以拒绝，请输入备注"
+                size="small"
+                type="textarea"
+                :rows="2"
+              />
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
   </div>
 </template>
 
@@ -264,6 +336,7 @@ import {
   addStore,
   updateStore,
   ban,
+  audit,
 } from "@/api/manage/store";
 
 // 获取全局代理对象
@@ -273,14 +346,21 @@ const { store_status } = proxy.useDict("store_status");
 
 // 数据表格内容
 const storeList = ref([]);
+// 待审核数据表格内容
+const auditList = ref([]);
 
 // 存储总记录数
 const total = ref(0);
+// 待审核记录数
+const auditTotal = ref(0);
+
 // 对话框标题
 const title = ref("");
 // 封禁理由固定前缀
 const banCommentPrefix = ref("Ban Comment:");
 
+// 审核对话框开关
+const auditOpen = ref(false);
 // 对话框开关
 const open = ref(false);
 // 封禁对话框开关
@@ -313,6 +393,14 @@ const data = reactive({
     contact: null,
   },
 
+  // 待审查数据查询参数
+  auditParams: {
+    pageNum: 1,
+    pageSize: 10,
+    auditFlag: 1,
+    // auditStatus自行添加
+  },
+
   // 表单校验规则：增加/编辑店铺对话框
   rules: {
     storeLogo: [
@@ -338,7 +426,7 @@ const data = reactive({
 });
 
 // 解构响应式数据
-const { queryParams, form, rules } = toRefs(data);
+const { queryParams, form, rules, auditParams } = toRefs(data);
 
 /** 查询店铺管理列表 */
 function getList() {
@@ -486,8 +574,56 @@ function submitBanForm() {
   });
 }
 
+/** 获取待审核数据
+ * 申请标记：1； 状态：待审核/封禁
+ */
+async function getAuditList() {
+  // 查询两次，保存两次数据
+
+  try {
+    // 使用Promise.all等待两个请求都完成
+    const [response1, response2] = await Promise.all([
+      listStore({ ...auditParams.value, storeStatus: 0 }),
+      listStore({ ...auditParams.value, storeStatus: 3 }),
+    ]);
+
+    // 直接使用response的数据
+    auditList.value = [...response1.rows, ...response2.rows];
+    auditTotal.value = response1.total + response2.total;
+  } catch (error) {
+    console.error("获取审核列表失败:", error);
+    proxy.$modal.msgError("获取审核列表失败");
+  }
+}
+
+/** 打开审核对话框 */
+function handleAuditOpen() {
+  auditOpen.value = true;
+  title.value = "店铺审核";
+}
+
+/** 处理审核结果 */
+function handleAudit(row, accept) {
+  audit({
+    storeId: row.storeId,
+    auditComment: row.auditComment,
+    params: {
+      isAccept: accept,
+    },
+  }).then(() => {
+    proxy.$modal.msgSuccess("审核成功");
+    // 从待审查列表中删除当前数据
+    auditList.value = auditList.value.filter(
+      (item) => item.storeId !== row.storeId
+    );
+    auditTotal.value--;
+    // 重新加载主视图表格
+    getList();
+  });
+}
 // 初始化列表数据
 getList();
+getAuditList();
 </script>
 
 <style scoped>
@@ -546,5 +682,48 @@ getList();
   gap: 8px;
   justify-content: center;
   width: 100%;
+}
+
+/** 功能按钮--ruoyi生成 */
+.left-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+/*让自定义按钮居中布局 */
+.center-col {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 审核操作区样式 */
+.audit-actions {
+  /* 使用flex布局，实现灵活的容器布局 */
+  display: flex;
+  /* 设置主轴方向为垂直方向，使子元素垂直排列 */
+  flex-direction: column;
+  /* 设置子元素之间的间距为8px */
+  gap: 8px;
+}
+
+.button-group {
+  /* 使用flex布局，实现按钮组的水平排列 */
+  display: flex;
+  /* 设置子元素（按钮）在主轴上居中对齐 */
+  justify-content: center;
+  /* 设置按钮之间的间距为8px */
+  gap: 8px;
+}
+
+.status-cell {
+  position: relative;
+  display: inline-block;
+}
+
+.audit-dot {
+  position: absolute;
+  top: -2px;
+  right: -8px;
 }
 </style>
