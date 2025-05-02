@@ -59,52 +59,65 @@
 
     <!-- 功能按钮 -->
     <el-row :gutter="10" class="mb8">
-      <!-- 新增按钮 -->
-      <el-col :span="1.5">
-        <el-button
-          type="primary"
-          plain
-          icon="Plus"
-          @click="handleAdd"
-          v-hasPermi="['manage:store:add']"
-          >新增</el-button
-        >
+      <!-- 模板按钮 -->
+      <el-col :span="8">
+        <!-- 新增按钮 -->
+        <div class="left-buttons">
+          <el-button
+            type="primary"
+            plain
+            icon="Plus"
+            @click="handleAdd"
+            v-hasPermi="['manage:store:add']"
+            >新增</el-button
+          >
+          <!-- 修改按钮 -->
+          <el-button
+            type="success"
+            plain
+            icon="Edit"
+            :disabled="single"
+            @click="handleUpdate"
+            v-hasPermi="['manage:store:edit']"
+            >修改</el-button
+          >
+          <!-- 删除按钮 -->
+
+          <el-button
+            type="danger"
+            plain
+            icon="Delete"
+            :disabled="multiple"
+            @click="handleDelete"
+            v-hasPermi="['manage:store:remove']"
+            >删除</el-button
+          >
+          <!-- 导出按钮 -->
+          <el-button
+            type="warning"
+            plain
+            icon="Download"
+            @click="handleExport"
+            v-hasPermi="['manage:store:export']"
+            >导出</el-button
+          >
+        </div>
       </el-col>
-      <!-- 修改按钮 -->
-      <el-col :span="1.5">
-        <el-button
-          type="success"
-          plain
-          icon="Edit"
-          :disabled="single"
-          @click="handleUpdate"
-          v-hasPermi="['manage:store:edit']"
-          >修改</el-button
-        >
+
+      <!-- 审核按钮--居中 -->
+      <el-col :span="8" class="center-col">
+        <el-badge :value="auditTotal">
+          <el-button
+            type="warning"
+            plain
+            icon="List"
+            @click="auditOpen"
+            v-hasRole="['admin', 'operator']"
+            >开始审核</el-button
+          >
+        </el-badge>
       </el-col>
-      <!-- 删除按钮 -->
-      <el-col :span="1.5">
-        <el-button
-          type="danger"
-          plain
-          icon="Delete"
-          :disabled="multiple"
-          @click="handleDelete"
-          v-hasPermi="['manage:store:remove']"
-          >删除</el-button
-        >
-      </el-col>
-      <!-- 导出按钮 -->
-      <el-col :span="1.5">
-        <el-button
-          type="warning"
-          plain
-          icon="Download"
-          @click="handleExport"
-          v-hasPermi="['manage:store:export']"
-          >导出</el-button
-        >
-      </el-col>
+
       <!-- 搜索条显示控制工具栏 -->
       <right-toolbar
         v-model:showSearch="showSearch"
@@ -546,5 +559,18 @@ getList();
   gap: 8px;
   justify-content: center;
   width: 100%;
+}
+
+/** 功能按钮--ruoyi生成 */
+.left-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+/*让自定义按钮居中布局 */
+.center-col {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 </style>
