@@ -105,7 +105,7 @@ watch(() => props.modelValue, val => {
     fileList.value = list.map(item => {
       if (typeof item === "string") {
         // 如果是字符串，并且不是以http开头的，那么就加上baseUrl
-        if (item.indexOf(baseUrl) === -1 && item,indexOf("http") === -1) {
+        if (item.indexOf(baseUrl) === -1 && item.indexOf("http") === -1) {
           item = { name: baseUrl + item, url: baseUrl + item };
         } else {
           item = { name: item, url: item };
@@ -163,6 +163,7 @@ function handleExceed() {
 function handleUploadSuccess(res, file) {
   if (res.code === 200) {
     uploadList.value.push({ name: res.fileName, url: res.fileName });
+    console.log(res.fileName);
     uploadedSuccessfully();
   } else {
     number.value--;
