@@ -50,6 +50,7 @@
 </template>
 
 <script setup>
+import { addStore } from "@/api/manage/store";
 import { ref, reactive } from "vue";
 import ImageUpload from "@/components/ImageUpload/index.vue";
 
@@ -64,9 +65,7 @@ const formData = reactive({
 // 表单验证规则
 const rules = {
   // 店铺名称必填
-  storeName: [
-    { required: true, message: "请输入店铺名称", trigger: "blur" },
-  ],
+  storeName: [{ required: true, message: "请输入店铺名称", trigger: "blur" }],
   // 店铺logo必填
   storeLogo: [{ required: true, message: "请上传店铺logo", trigger: "change" }],
   // 店铺名称必填
@@ -93,6 +92,16 @@ const submitForm = async () => {
   await formRef.value.validate((valid) => {
     if (valid) {
       // TODO: 调用后端API提交表单
+      addStore(formData).then((res) => {
+        if (res.code === 200) {
+          // 提示成功
+          ElMessage.success("店铺申请成功");
+          // TODO：清空表单并且进入"我的店铺路由"
+        } else {
+          // 提示失败
+          ElMessage.error(res.msg || "店铺申请失败");
+        }
+      });
       console.log("表单提交", formData);
     }
   });
