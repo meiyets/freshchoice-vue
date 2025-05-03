@@ -45,9 +45,12 @@ export default defineConfig(({ mode, command }) => {
       open: true,
       proxy: {
         // https://cn.vitejs.dev/config/#server-proxy
+        // 当包含该前缀，会触发代理
         '/dev-api': {
+          // 代理目标地址
           target: 'http://localhost:8080',
           changeOrigin: true,
+          // 重写规则，去掉了/dev-api前缀
           rewrite: (p) => p.replace(/^\/dev-api/, '')
         }
       }

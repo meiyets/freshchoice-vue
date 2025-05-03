@@ -104,7 +104,8 @@ watch(() => props.modelValue, val => {
     // 然后将数组转为对象数组
     fileList.value = list.map(item => {
       if (typeof item === "string") {
-        if (item.indexOf(baseUrl) === -1 && !isExternal(item)) {
+        // 如果是字符串，并且不是以http开头的，那么就加上baseUrl
+        if (item.indexOf(baseUrl) === -1 && item,indexOf("http") === -1) {
           item = { name: baseUrl + item, url: baseUrl + item };
         } else {
           item = { name: item, url: item };
