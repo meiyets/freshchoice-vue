@@ -52,6 +52,7 @@
 <script setup>
 import { addStore } from "@/api/manage/store";
 import { ref, reactive } from "vue";
+import { ElMessage } from "element-plus";
 import ImageUpload from "@/components/ImageUpload/index.vue";
 
 // 表单数据
@@ -91,18 +92,17 @@ const submitForm = async () => {
   // 表单验证
   await formRef.value.validate((valid) => {
     if (valid) {
-      // TODO: 调用后端API提交表单
       addStore(formData).then((res) => {
         if (res.code === 200) {
           // 提示成功
           ElMessage.success("店铺申请成功");
           // TODO：清空表单并且进入"我的店铺路由"
+          // formRef.value.resetFields();
         } else {
           // 提示失败
           ElMessage.error(res.msg || "店铺申请失败");
         }
       });
-      console.log("表单提交", formData);
     }
   });
 };
