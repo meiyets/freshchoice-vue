@@ -138,7 +138,19 @@
       <!-- 店铺编号 -->
       <el-table-column label="店铺编号" align="center" prop="storeCode" />
       <!-- 店铺名称 -->
-      <el-table-column label="店铺名称" align="center" prop="storeName" />
+      <el-table-column label="店铺名称" align="center" prop="storeName">
+        <template #default="scope">
+          <router-link
+            :to="{
+              name: 'StoreDetail',
+              params: { storeId: scope.row.storeId },
+            }"
+            class="store-name-link"
+          >
+            {{ scope.row.storeName }}
+          </router-link>
+        </template>
+      </el-table-column>
       <!-- 店铺logo -->
       <el-table-column
         label="店铺logo"
@@ -159,7 +171,10 @@
             <el-badge
               is-dot
               type="danger"
-              v-if="scope.row.auditFlag === 1 && (scope.row.storeStatus === 0 || scope.row.storeStatus === 3)"
+              v-if="
+                scope.row.auditFlag === 1 &&
+                (scope.row.storeStatus === 0 || scope.row.storeStatus === 3)
+              "
               class="audit-dot"
             />
           </div>
@@ -338,7 +353,8 @@ import {
   ban,
   audit,
 } from "@/api/manage/store";
-
+import { useRouter } from "vue-router";
+const router = useRouter();
 // 获取全局代理对象
 const { proxy } = getCurrentInstance();
 // 获取字典数据：店铺状态
