@@ -13,7 +13,7 @@
       ref="formRef"
       :model="formData"
       :rules="rules"
-      label-width="120px"
+      label-width="130px"
       class="apply-form"
     >
       <!-- 店铺名称 -->
@@ -33,11 +33,10 @@
 
       <!-- 店铺描述（富文本） -->
       <el-form-item label="店铺描述" prop="storeDesc">
-        <el-input
-          type="textarea"
+        <WangEditor 
           v-model="formData.storeDesc"
-          :rows="4"
-          placeholder="请输入店铺描述"
+          height="400px"
+          :showPreview="false"
         />
       </el-form-item>
 
@@ -54,6 +53,7 @@ import { addStore } from "@/api/manage/store";
 import { ref, reactive } from "vue";
 import { ElMessage } from "element-plus";
 import ImageUpload from "@/components/ImageUpload/index.vue";
+import WangEditor from "@/myComponents/WangEditor/index.vue"; // 新增导入
 
 // 表单数据
 const formData = reactive({
@@ -110,25 +110,134 @@ const submitForm = async () => {
 
 <style scoped>
 .apply-shop-container {
-  max-width: 800px;
-  margin: 20px auto;
-  padding: 20px;
+  max-width: 1000px;  /* 扩大容器宽度 */
+  margin: 30px auto;
+  padding: 40px;
+  background: #f8fafc;
+  min-height: 100vh;
 }
 
 .page-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 40px;
+  padding: 30px;
+  background: linear-gradient(135deg, #f6f7f9 0%, #ffffff 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .description {
-  color: #666;
-  margin-top: 10px;
+  color: #64748b;
+  margin-top: 15px;
+  font-size: 16px;
 }
 
 .apply-form {
   background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);  /* 加深阴影浓度 */
 }
+
+.apply-form:hover {
+  transform: translateY(-3px);  /* 增大悬停位移 */
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);  /* 增强悬停阴影 */
+}
+
+/* 表单项间距优化 */
+.el-form-item {
+  margin-bottom: 28px;
+}
+
+/* 输入框聚焦效果 */
+:deep(.el-input__wrapper) {
+  transition: all 0.3s ease;
+  box-shadow: 0 0 0 1px #e2e8f0;
+}
+
+:deep(.el-input__wrapper:hover),
+:deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 2px #6366f1;
+}
+
+/* 按钮美化 */
+.el-button--primary {
+  background-color: #6366f1;
+  border: none;
+  padding: 12px 28px;
+  transition: all 0.3s ease;
+}
+
+.el-button--primary:hover {
+  background-color: #4f46e5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3);
+}
+
+/* 必填项标识 */
+.el-form-item.is-required:not(.is-no-asterisk) > .el-form-item__label::before {
+  color: #ef4444;
+  margin-right: 4px;
+}
+
+
+/* 新增页面标题动画 */
+.page-header {
+  animation: titleFadeIn 0.6s ease;
+}
+
+@keyframes titleFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 表单容器悬停动画 */
+.apply-form {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.apply-form:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08);
+}
+
+/* 按钮点击动画 */
+.el-button--primary:active {
+  transform: scale(0.98);
+}
+
+/* 输入框标签美化 */
+:deep(.el-form-item__label) {
+  font-weight: 500;
+  color: #475569;
+  transition: color 0.3s ease;
+}
+
+:deep(.el-form-item__label:hover) {
+  color: #6366f1;
+}
+
+/* 图片上传区域特效 */
+:deep(.upload-container) {
+  border: 2px dashed #cbd5e1;
+  transition: all 0.3s ease;
+}
+
+:deep(.upload-container:hover) {
+  border-color: #818cf8;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.1);
+}
+
+/* 全局过渡效果 */
+* {
+  transition: all 0.3s ease;
+}
+
 </style>
