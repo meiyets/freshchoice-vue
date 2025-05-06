@@ -7,7 +7,17 @@
           <div class="logo-section">
             <el-image :src="storeData.storeLogo" class="store-logo" />
             <div class="title-section">
-              <h1>{{ storeData.storeName }}</h1>
+              <div class="title-wrapper">
+                <h1>{{ storeData.storeName }}</h1>
+                <!-- 将编辑按钮移到这里 -->
+                <el-button
+                  type="primary"
+                  icon="Edit"
+                  class="edit-button"
+                  @click="handleEdit"
+                  >编辑店铺</el-button
+                >
+              </div>
               <div class="store-code">店铺编号：{{ storeData.storeCode }}</div>
             </div>
           </div>
@@ -37,8 +47,8 @@
                   class="status-card"
                   :class="'status-' + storeData.storeStatus"
                 >
-                  <!-- 保留状态卡片内的图标按钮 -->
-                  <el-popover 
+                  <!-- 审核备注弹出框 -->
+                  <el-popover
                     placement="top"
                     trigger="click"
                     :width="280"
@@ -49,8 +59,10 @@
                       <el-button
                         class="audit-icon-btn"
                         :class="{
-                          'active-status': [1,2].includes(storeData.storeStatus),
-                          'disabled-status': !storeData.auditComment
+                          'active-status': [1, 2].includes(
+                            storeData.storeStatus
+                          ),
+                          'disabled-status': !storeData.auditComment,
                         }"
                         :disabled="!storeData.auditComment"
                         type="warning"
@@ -62,12 +74,39 @@
                     </template>
                     <div class="audit-popover">
                       <h4>审核备注</h4>
-                      <div class="audit-content">{{ storeData.auditComment }}</div>
+                      <div class="audit-content">
+                        {{ storeData.auditComment }}
+                      </div>
                     </div>
                   </el-popover>
-                  
+
+                  <!-- 新增申请标记按钮 -->
+                  <el-tooltip
+                    content="点击此处提交审核"
+                    placement="top"
+                    :disabled="storeData.auditFlag === 1"
+                    :manual="true"
+                    v-model:visible="showTooltip"
+                    trigger="manual"
+                  >
+                    <el-button
+                      v-if="showAuditFlag"
+                      class="audit-flag-btn"
+                      :class="{ 'is-pending': storeData.auditFlag }"
+                      :disabled="storeData.auditFlag"
+                      @click="handleAuditFlag"
+                      type="primary"
+                      circle
+                    >
+                      <el-icon
+                        ><component
+                          :is="storeData.auditFlag ? 'Clock' : 'Select'"
+                      /></el-icon>
+                    </el-button>
+                  </el-tooltip>
+
                   <el-icon class="status-icon">
-                    <component :is="statusConfig.icon"/>
+                    <component :is="statusConfig.icon" />
                   </el-icon>
                   <div class="status-content">
                     <h3>{{ statusConfig.title }}</h3>
@@ -79,18 +118,49 @@
           </div>
 
           <!-- 状态进度条 -->
-          <el-steps
-            :active="statusStep"
-            finish-status="success"
-            simple
-            class="status-steps"
-          >
-            <el-step title="申请提交" icon="DocumentChecked" />
-            <el-step title="审核通过" icon="CircleCheck" />
-            <el-step title="正式运营" icon="Shop" />
-          </el-steps>
-
-
+          <!-- 状态进度条 -->
+          <div class="status-flow">
+            <el-steps
+              :active="statusStep"
+              :status="stepStatus"
+              simple
+              class="status-steps"
+            >
+              <el-step
+                title="申请提交"
+                icon="DocumentChecked"
+                :status="getStepStatus(1)"
+              >
+                <template #description>
+                  <span
+                    v-if="storeData.storeStatus === 0 && !storeData.auditFlag"
+                    >等待提交</span
+                  >
+                  <span v-else-if="storeData.auditFlag === 1">审核中</span>
+                </template>
+              </el-step>
+              <el-step
+                title="审核通过"
+                icon="CircleCheck"
+                :status="getStepStatus(2)"
+              >
+                <template #description>
+                  <span
+                    v-if="[3, 4].includes(storeData.storeStatus)"
+                    class="error-status"
+                  >
+                    {{ storeData.storeStatus === 3 ? "已封禁" : "已注销" }}
+                  </span>
+                </template>
+              </el-step>
+              <el-step title="正式运营" icon="Shop" :status="getStepStatus(3)">
+                <template #description>
+                  <span v-if="storeData.storeStatus === 1">营业中</span>
+                  <span v-else-if="storeData.storeStatus === 2">已停业</span>
+                </template>
+              </el-step>
+            </el-steps>
+          </div>
 
           <!-- 状态操作 -->
           <div class="status-actions" v-if="showStatusToggle">
@@ -111,8 +181,51 @@
       <h3 class="section-title">店铺介绍</h3>
       <div class="wang-editor-content" v-html="storeData.storeDesc"></div>
     </el-card>
+    <!-- 添加编辑对话框 -->
+    <el-dialog
+      :title="'编辑店铺'"
+      v-model="editDialogVisible"
+      width="1200px"
+      append-to-body
+    >
+      <el-form
+        ref="editFormRef"
+        :model="editForm"
+        :rules="rules"
+        label-width="130px"
+        class="edit-form"
+      >
+        <!-- 店铺名称 -->
+        <el-form-item label="店铺名称" prop="storeName">
+          <el-input v-model="editForm.storeName" placeholder="请输入店铺名称" />
+        </el-form-item>
 
+        <!-- 店铺logo上传 -->
+        <el-form-item label="店铺Logo" prop="storeLogo">
+          <image-upload v-model="editForm.storeLogo" :limit="1" />
+        </el-form-item>
 
+        <!-- 联系电话 -->
+        <el-form-item label="联系电话" prop="contact">
+          <el-input v-model="editForm.contact" placeholder="请输入联系电话" />
+        </el-form-item>
+
+        <!-- 店铺描述（富文本） -->
+        <el-form-item label="店铺描述" prop="storeDesc">
+          <WangEditor
+            v-model="editForm.storeDesc"
+            height="400px"
+            :showPreview="false"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="submitEditForm">确 定</el-button>
+          <el-button @click="editDialogVisible = false">取 消</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -127,9 +240,12 @@ import {
   Close, // 新增导入
 } from "@element-plus/icons-vue";
 // 导入请求API
-import { getStore } from "@/api/manage/store";
+import { getStore, updateStore } from "@/api/manage/store";
 // 导入Element Plus消息提示
 import { ElMessage } from "element-plus";
+import WangEditor from "@/myComponents/WangEditor/index.vue";
+import ImageUpload from "@/components/ImageUpload/index.vue";
+import { Edit } from "@element-plus/icons-vue";
 
 // 店铺数据响应式对象
 const storeData = ref({
@@ -140,11 +256,112 @@ const storeData = ref({
   storeDesc: "",
   auditComment: "",
   createTime: "",
+  auditFlag: 0,
+});
+
+// 编辑对话框显示状态
+const editDialogVisible = ref(false);
+// 编辑表单引用
+const editFormRef = ref(null);
+// 编辑表单数据
+const editForm = reactive({
+  storeName: "",
+  storeLogo: "",
+  contact: "",
+  storeDesc: "",
+});
+
+// 表单验证规则
+const rules = {
+  storeName: [{ required: true, message: "请输入店铺名称", trigger: "blur" }],
+  storeLogo: [{ required: true, message: "请上传店铺logo", trigger: "change" }],
+  contact: [
+    { required: true, message: "请输入联系电话", trigger: "blur" },
+    {
+      pattern: /^1[3-9]\d{9}$/,
+      message: "请输入正确的手机号码",
+      trigger: "blur",
+    },
+  ],
+  storeDesc: [{ required: true, message: "请输入店铺描述", trigger: "blur" }],
+};
+
+// 处理编辑按钮点击
+const handleEdit = () => {
+  editForm.storeName = storeData.value.storeName;
+  editForm.storeLogo = storeData.value.storeLogo;
+  editForm.contact = storeData.value.contact;
+  editForm.storeDesc = storeData.value.storeDesc;
+  editDialogVisible.value = true;
+};
+
+// 提交编辑表单
+const submitEditForm = async () => {
+  if (!editFormRef.value) return;
+
+  await editFormRef.value.validate((valid) => {
+    if (valid) {
+      updateStore({
+        storeId: storeData.value.storeId,
+        ...editForm,
+      }).then((res) => {
+        if (res.code === 200) {
+          ElMessage.success("店铺信息更新成功");
+          editDialogVisible.value = false;
+          // 刷新店铺数据
+          getStore(storeData.value.storeId).then((res) => {
+            storeData.value = res.data;
+          });
+        } else {
+          ElMessage.error(res.msg || "店铺信息更新失败");
+        }
+      });
+    }
+  });
+};
+const getStepStatus = (step) => {
+  const status = storeData.value.storeStatus;
+
+  // 如果是封禁或注销状态
+  if ([3, 4].includes(status)) {
+    if (step === 1) return "finish";
+    if (step === 2) return "error";
+    if (step === 3) return "wait";
+    return "wait";
+  }
+
+  // 如果是正常状态
+  if (step < statusStep.value) return "finish";
+  if (step === statusStep.value) return processStatus.value;
+  return "wait";
+};
+
+// 进度条状态
+const processStatus = computed(() => {
+  // 异常状态显示为警告
+  if ([3, 4].includes(storeData.value.storeStatus)) {
+    return "error";
+  }
+  // 审核中状态
+  if (storeData.value.auditFlag === 1) {
+    return "wait";
+  }
+  return "process";
 });
 
 // 计算当前状态步骤
 const statusStep = computed(() => {
-  return Math.min(storeData.value.storeStatus + 1, 3); // 简化逻辑
+  const status = storeData.value.storeStatus;
+  // 如果是封禁或注销状态，停在第二步
+  if ([3, 4].includes(status)) {
+    return 2;
+  }
+  // 如果是正常营业或停业状态，显示为第三步
+  if ([1, 2].includes(status)) {
+    return 3;
+  }
+  // 如果是待审核状态，显示为第一步
+  return 1;
 });
 
 // 显示状态切换的条件（营业中/停业中）
@@ -159,12 +376,25 @@ const toggleStoreStatus = () => {
 
 // 新增状态配置映射
 const statusConfig = computed(() => {
-  const configMap = {
-    0: {
+  // 如果是异常状态且有审核标记，优先显示审核中状态
+  if (
+    ![1, 2].includes(storeData.value.storeStatus) &&
+    storeData.value.auditFlag === 1
+  ) {
+    return {
       icon: "Clock",
       title: "审核中",
       color: "#e6a23c",
       description: "您的店铺正在等待管理员审核",
+    };
+  }
+
+  const configMap = {
+    0: {
+      icon: "Clock",
+      title: "待审核",
+      color: "#e6a23c",
+      description: "正在等待提交审核",
     },
     1: {
       icon: "CircleCheck",
@@ -194,9 +424,35 @@ const statusConfig = computed(() => {
   return configMap[storeData.value.storeStatus] || {};
 });
 
-// 编辑处理
-const handleEdit = () => {
-  // 后续实现编辑逻辑
+// 显示申请标记按钮的条件
+const showAuditFlag = computed(() => {
+  return ![1, 2].includes(storeData.value.storeStatus);
+});
+
+// 处理申请标记
+const handleAuditFlag = async () => {
+  if (storeData.value.auditFlag) {
+    ElMessage.warning("已提交申请，请等待审核");
+    return;
+  }
+
+  try {
+    await updateStore({
+      storeId: storeData.value.storeId,
+      auditFlag: 1,
+    });
+    storeData.value.auditFlag = 1;
+    ElMessage.success("申请提交成功");
+
+    // 清除定时器
+    if (tooltipTimer) {
+      clearInterval(tooltipTimer);
+      tooltipTimer = null;
+    }
+  } catch (error) {
+    console.error("申请提交失败:", error);
+    ElMessage.error("申请提交失败");
+  }
 };
 
 // 页面加载时获取店铺信息
@@ -236,10 +492,111 @@ function getStoreInfo() {
     });
 }
 
+// 添加tooltip显示状态控制
+const showTooltip = ref(false);
+
+// 添加tooltip定时器变量
+let tooltipTimer = null;
+
+// 在组件挂载后启动定时器
+onMounted(() => {
+  if (!storeData.value.auditFlag) {
+    startTooltipTimer();
+  }
+});
+
+// 在组件卸载前清理定时器
+onUnmounted(() => {
+  if (tooltipTimer) {
+    clearInterval(tooltipTimer);
+  }
+});
+
+// 启动tooltip定时器
+const startTooltipTimer = () => {
+  tooltipTimer = setInterval(() => {
+    showTooltip.value = true;
+    setTimeout(() => {
+      showTooltip.value = false;
+    }, 2000); // 显示2秒后隐藏
+  }, 5000); // 每5秒显示一次
+};
 getStoreInfo();
 </script>
 
 <style scoped lang="scss">
+.status-flow {
+  margin: 20px 0;
+
+  :deep(.el-step) {
+    .el-step__description {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+
+      .error-status {
+        color: var(--el-color-danger);
+        font-weight: bold;
+      }
+
+      &.is-error {
+        color: var(--el-color-danger);
+      }
+
+      &.is-wait {
+        color: var(--el-color-warning);
+      }
+    }
+
+    &.is-error {
+      .el-step__title,
+      .el-step__icon {
+        color: var(--el-color-danger) !important;
+      }
+
+      .el-step__line {
+        background-color: var(--el-color-danger);
+      }
+    }
+
+    &.is-wait {
+      .el-step__title,
+      .el-step__icon {
+        color: var(--el-color-warning);
+      }
+    }
+  }
+}
+.audit-flag-btn {
+  position: absolute;
+  right: 60px; // 位于审核备注按钮左侧
+  top: 15px;
+  z-index: 1;
+  transition: all 0.3s ease;
+
+  &.is-pending {
+    background-color: var(--el-color-warning);
+    border-color: var(--el-color-warning);
+
+    &:hover {
+      background-color: var(--el-color-warning);
+      border-color: var(--el-color-warning);
+      opacity: 0.8;
+    }
+
+    :deep(.el-icon) {
+      animation: rotating 2s linear infinite;
+    }
+  }
+}
+
+@keyframes rotating {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
 .store-detail-container {
   padding: 20px;
   max-width: 1200px;
@@ -269,10 +626,16 @@ getStoreInfo();
   margin-right: 20px;
 }
 
-.title-section h1 {
-  margin: 0;
-  font-size: 24px;
-  color: #303133;
+.title-section {
+  flex: 1;
+  min-width: 0;  /* 防止flex子项溢出 */
+  
+  h1 {
+    margin: 0;
+    font-size: 24px;
+    color: #303133;
+    word-break: break-all;  /* 允许标题在必要时换行 */
+  }
 }
 
 .store-code {
@@ -327,10 +690,9 @@ getStoreInfo();
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-
 /* 状态卡片 */
 .status-card {
-  position: relative;  // 新增定位上下文
+  position: relative; // 新增定位上下文
   display: flex;
   align-items: center;
   padding: 20px;
@@ -391,51 +753,8 @@ getStoreInfo();
     font-size: 24px;
   }
 }
-</style>
 
-<style scoped lang="scss">
-// 新增审核备注样式
-.audit-reminder {
-  margin-top: 15px;
-  text-align: center;
 
-  .audit-tag {
-    cursor: pointer;
-    padding: 8px 12px;
-    transition: all 0.3s;
-
-    .el-icon {
-      margin-right: 6px;
-      font-size: 16px;
-    }
-
-    &:hover {
-      opacity: 0.9;
-    }
-  }
-}
-
-.audit-popover-content {
-  line-height: 1.6;
-  font-size: 14px;
-  color: #606266;
-}
-
-// 删除原悬浮按钮样式
-.audit-container {
-  position: fixed;
-  right: 40px;
-  bottom: 40px;
-  z-index: 2000;
-
-  .audit-badge {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-
-    :deep(.el-icon) {
-      font-size: 18px;
-    }
-  }
-}
 
 .audit-popover {
   h4 {
@@ -469,18 +788,18 @@ $disabled-color: #c0c4cc;
   &.active-status {
     background-color: rgba($status-active-color, 0.1);
     border-color: $status-active-color;
-    
+
     .el-icon {
       color: $status-active-color;
     }
   }
-  
+
   &.disabled-status {
     background-color: $disabled-color !important;
     border-color: $disabled-color !important;
     cursor: not-allowed;
     opacity: 0.6;
-    
+
     .el-icon {
       color: #fff;
     }
@@ -492,9 +811,37 @@ $disabled-color: #c0c4cc;
   top: 15px;
   padding: 6px;
   z-index: 1;
-  
+
   :deep(.el-icon) {
     font-size: 16px;
   }
+}
+
+/* 标题包装器样式 */
+.title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+
+  h1 {
+    margin: 0;
+  }
+}
+
+/* 编辑按钮样式 */
+.edit-button {
+  padding: 6px 12px;
+  height: 32px;
+}
+
+.edit-form {
+  width: 100%;
+  margin: 0;
+}
+
+/* 编辑对话框中的表单项间距 */
+:deep(.el-form-item) {
+  margin-bottom: 22px;
 }
 </style>
