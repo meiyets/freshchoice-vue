@@ -628,13 +628,13 @@ getStoreInfo();
 
 .title-section {
   flex: 1;
-  min-width: 0;  /* 防止flex子项溢出 */
-  
+  min-width: 0; /* 防止flex子项溢出 */
+
   h1 {
     margin: 0;
     font-size: 24px;
     color: #303133;
-    word-break: break-all;  /* 允许标题在必要时换行 */
+    word-break: break-all; /* 允许标题在必要时换行 */
   }
 }
 
@@ -753,8 +753,6 @@ getStoreInfo();
     font-size: 24px;
   }
 }
-
-
 
 .audit-popover {
   h4 {

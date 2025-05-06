@@ -33,7 +33,7 @@
 
       <!-- 店铺描述（富文本） -->
       <el-form-item label="店铺描述" prop="storeDesc">
-        <WangEditor 
+        <WangEditor
           v-model="formData.storeDesc"
           height="400px"
           :showPreview="false"
@@ -84,7 +84,9 @@ const rules = {
 
 // 表单引用
 const formRef = ref(null);
+import { useRouter } from "vue-router"; // 新增导入路由实例
 
+const router = useRouter();
 // 提交表单
 const submitForm = async () => {
   // 表单值不为空
@@ -97,7 +99,13 @@ const submitForm = async () => {
           // 提示成功
           ElMessage.success("店铺申请成功");
           // TODO：清空表单并且进入"我的店铺路由"
-          // formRef.value.resetFields();
+          formRef.value.resetFields();
+          router.push({
+            name: "StoreDetail",
+            params: {
+              storeId: 0,
+            },
+          });
         } else {
           // 提示失败
           ElMessage.error(res.msg || "店铺申请失败");
@@ -110,7 +118,7 @@ const submitForm = async () => {
 
 <style scoped>
 .apply-shop-container {
-  max-width: 1000px;  /* 扩大容器宽度 */
+  max-width: 1000px; /* 扩大容器宽度 */
   margin: 30px auto;
   padding: 40px;
   background: #f8fafc;
@@ -137,12 +145,12 @@ const submitForm = async () => {
   padding: 40px;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);  /* 加深阴影浓度 */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); /* 加深阴影浓度 */
 }
 
 .apply-form:hover {
-  transform: translateY(-3px);  /* 增大悬停位移 */
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);  /* 增强悬停阴影 */
+  transform: translateY(-3px); /* 增大悬停位移 */
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); /* 增强悬停阴影 */
 }
 
 /* 表单项间距优化 */
@@ -180,7 +188,6 @@ const submitForm = async () => {
   color: #ef4444;
   margin-right: 4px;
 }
-
 
 /* 新增页面标题动画 */
 .page-header {
@@ -239,5 +246,4 @@ const submitForm = async () => {
 * {
   transition: all 0.3s ease;
 }
-
 </style>

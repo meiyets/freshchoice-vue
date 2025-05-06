@@ -3,73 +3,91 @@ import { createWebHistory, createRouter } from "vue-router";
 import Layout from "@/layout";
 
 /**
- * Note: 路由配置项
+ * Vue Router 配置说明：
  *
- * hidden: true                     // 当设置 true 的时候该路由不会再侧边栏出现 如401，login等页面，或者如一些编辑页面/edit/1
- * alwaysShow: true                 // 当你一个路由下面的 children 声明的路由大于1个时，自动会变成嵌套的模式--如组件页面
- *                                  // 只有一个时，会将那个子路由当做根路由显示在侧边栏--如引导页面
- *                                  // 若你想不管路由下面的 children 声明的个数都显示你的根路由
- *                                  // 你可以设置 alwaysShow: true，这样它就会忽略之前定义的规则，一直显示根路由
- * redirect: noRedirect             // 当设置 noRedirect 的时候该路由在面包屑导航中不可被点击
- * name:'router-name'               // 设定路由的名字，一定要填写不然使用<keep-alive>时会出现各种问题
- * query: '{"id": 1, "name": "ry"}' // 访问路由的默认传递参数
- * roles: ['admin', 'common']       // 访问路由的角色权限
- * permissions: ['a:a:a', 'b:b:b']  // 访问路由的菜单权限
- * meta : {
-    noCache: true                   // 如果设置为true，则不会被 <keep-alive> 缓存(默认 false)
-    title: 'title'                  // 设置该路由在侧边栏和面包屑中展示的名字
-    icon: 'svg-name'                // 设置该路由的图标，对应路径src/assets/icons/svg
-    breadcrumb: false               // 如果设置为false，则不会在breadcrumb面包屑中显示
-    activeMenu: '/system/user'      // 当路由设置了该属性，则会高亮相对应的侧边栏。
-  }
+ * 1. 基本路由结构：
+ * {
+ *   path: '/路径',              // URL 路径
+ *   component: 组件,            // 路由对应的组件
+ *   name: '路由名称',           // 路由名称，用于编程式导航
+ *   meta: { ... },            // 路由元信息，用于存储自定义数据
+ *   children: [ ... ]         // 子路由配置
+ * }
+ *
+ * 2. 重要配置参数说明：
+ * hidden: true                // 是否在侧边栏隐藏此路由
+ * alwaysShow: true           // 是否始终显示根路由（即使只有一个子路由）
+ * redirect: noRedirect       // 重定向设置，noRedirect 表示该路由在面包屑中不可点击
+ * name: 'router-name'        // 路由名称，使用 keep-alive 时必须设置
+ * query: {...}              // 路由默认传递的参数
+ * roles: ['admin', ...]     // 可访问此路由的角色列表
+ * permissions: [...]        // 可访问此路由的权限列表
+ *
+ * 3. meta 配置说明：
+ * noCache: true             // 是否禁用 keep-alive 缓存
+ * title: '标题'             // 路由在侧边栏和面包屑中显示的标题
+ * icon: 'svg-name'         // 路由图标，对应 src/assets/icons/svg 中的图标
+ * breadcrumb: false        // 是否在面包屑中显示
+ * activeMenu: '/path'      // 指定侧边栏高亮的路由路径
  */
 
-// 公共路由
+// 公共路由 - 所有用户都可以访问的路由配置
 export const constantRoutes = [
   {
+    // 重定向路由 - 用于处理路由重定向
     path: "/redirect",
     component: Layout,
     hidden: true,
     children: [
       {
-        path: "/redirect/:path(.*)",
+        path: "/redirect/:path(.*)", // 动态路径参数，可以匹配任意路径
         component: () => import("@/views/redirect/index.vue"),
       },
     ],
   },
+  // 登录页路由
   {
     path: "/login",
     component: () => import("@/views/login"),
-    hidden: true,
+    hidden: true, // 在侧边栏中隐藏
   },
+  // 注册页路由
   {
     path: "/register",
     component: () => import("@/views/register"),
     hidden: true,
   },
+  // 404错误页路由 - 匹配所有未定义的路由
   {
     path: "/:pathMatch(.*)*",
     component: () => import("@/views/error/404"),
     hidden: true,
   },
+  // 401未授权页面路由
   {
     path: "/401",
     component: () => import("@/views/error/401"),
     hidden: true,
   },
+  // 首页路由配置
   {
     path: "",
     component: Layout,
-    redirect: "/index",
+    redirect: "/index", // 重定向到首页
     children: [
       {
         path: "/index",
         component: () => import("@/views/index"),
         name: "Index",
-        meta: { title: "首页", icon: "dashboard", affix: true },
+        meta: {
+          title: "首页",
+          icon: "dashboard",
+          affix: true, // 标签栏中固定显示
+        },
       },
     ],
   },
+  // 用户个人中心路由
   {
     path: "/user",
     component: Layout,
@@ -84,38 +102,41 @@ export const constantRoutes = [
       },
     ],
   },
+  // 店铺详情路由
   {
     path: "/myStore/storefront",
     component: Layout,
-    meta: { title: "店铺详情", icon: "shop" }, // 添加默认标题
+    meta: { title: "店铺详情" },
     children: [
       {
-        path: ":storeId",
+        path: ":storeId", // 动态路由参数，用于不同店铺ID
         name: "StoreDetail",
         component: () => import("@/views/manage/storefront/index.vue"),
-        props: true,
-        meta: { title: "店铺详情", activeMenu: "/myStore/storefront" }, // 确保标题存在
+        props: true, // 将路由参数作为组件的 props
+        meta: { title: "店铺详情", activeMenu: "/myStore/storefront" },
       },
       {
         path: "",
+        name: "MyStore",
         component: () => import("@/views/manage/storefront/index.vue"),
         props: { storeId: null },
-        meta: { title: "我的店铺", activeMenu: "/myStore/storefront" }, // 默认标题
+        meta: { title: "我的店铺", activeMenu: "/myStore/storefront" },
       },
     ],
   },
 ];
 
-// 动态路由，基于用户权限动态去加载
+// 动态路由配置 - 基于用户权限动态加载的路由
 export const dynamicRoutes = [
+  // 用户授权路由
   {
     path: "/system/user-auth",
     component: Layout,
     hidden: true,
-    permissions: ["system:user:edit"],
+    permissions: ["system:user:edit"], // 需要的权限
     children: [
       {
-        path: "role/:userId(\\d+)",
+        path: "role/:userId(\\d+)", // 正则表达式限制userId必须为数字
         component: () => import("@/views/system/user/authRole"),
         name: "AuthRole",
         meta: { title: "分配角色", activeMenu: "/system/user" },
@@ -189,6 +210,15 @@ const router = createRouter({
     }
     return { top: 0 };
   },
+});
+
+// 添加全局前置守卫
+router.beforeEach((to, from, next) => {
+  // 更新页面标题
+  if (to.meta.title) {
+    document.title = to.meta.title;
+  }
+  next();
 });
 
 export default router;

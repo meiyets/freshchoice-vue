@@ -105,14 +105,9 @@
       </el-col>
 
       <!-- 审核按钮--居中 -->
-      <el-col :span="8" class="center-col">
+      <el-col :span="8" class="center-col" v-hasRole="['admin', 'operator']">
         <el-badge :value="auditTotal">
-          <el-button
-            type="warning"
-            plain
-            icon="List"
-            @click="handleAuditOpen"
-            v-hasRole="['admin', 'operator']"
+          <el-button type="warning" plain icon="List" @click="handleAuditOpen"
             >开始审核</el-button
           >
         </el-badge>
@@ -294,7 +289,20 @@
     <el-dialog :title="title" v-model="auditOpen" width="700px" append-to-body>
       <el-table :data="auditList">
         <el-table-column label="序号" width="55" align="center" type="index" />
-        <el-table-column label="店铺名称" align="center" prop="storeName" />
+        <el-table-column label="店铺名称" align="center" prop="storeName">
+          <template #default="scope">
+            <router-link
+              :to="{
+                name: 'StoreDetail',
+                params: { storeId: scope.row.storeId },
+              }"
+              class="store-name-link"
+              @click="auditOpen = false"
+            >
+              {{ scope.row.storeName }}
+            </router-link>
+          </template>
+        </el-table-column>
         <el-table-column label="店铺状态" align="center" prop="storeStatus">
           <template #default="scope">
             <dict-tag :options="store_status" :value="scope.row.storeStatus" />
