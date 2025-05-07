@@ -160,7 +160,11 @@
       <el-table-column label="产品ID" align="center" prop="productId" />
       <el-table-column label="产品名称" align="center" prop="productName" />
       <el-table-column label="产品编号" align="center" prop="productCode" />
-      <el-table-column label="产品主图" align="center" prop="mainImg" />
+      <el-table-column label="产品主图" align="center" prop="mainImg" >
+                <template #default="scope">
+          <image-preview :src="scope.row.mainImg" :width="50" :height="50" />
+        </template>
+      </el-table-column>
       <el-table-column label="产品价格" align="center" prop="price" />
       <el-table-column label="库存数量" align="center" prop="stock" />
       <el-table-column label="产品状态(0:上架 1:下架 2:售罄)" align="center" prop="productStatus">
@@ -194,7 +198,7 @@
           <el-input v-model="form.productDesc" type="textarea" placeholder="请输入内容" />
         </el-form-item>
         <el-form-item label="产品主图" prop="mainImg">
-          <el-input v-model="form.mainImg" placeholder="请输入产品主图" />
+          <image-upload v-model="form.storeLogo" />
         </el-form-item>
         <el-form-item label="规格数值" prop="specificationValue">
           <el-input v-model="form.specificationValue" placeholder="请输入规格数值" />
