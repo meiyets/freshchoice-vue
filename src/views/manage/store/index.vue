@@ -446,6 +446,9 @@ const data = reactive({
         trigger: "blur",
       },
     ],
+    contact: [
+      { required: true, message: "联系电话不能为空", trigger: "blur" },
+    ],
   },
 });
 

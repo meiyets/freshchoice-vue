@@ -92,7 +92,7 @@
           type="primary"
           plain
           icon="Collection"
-          @click="categoryOpen = true"
+          @click="applyCategory"
           v-hasPermi="['manage:category:add']"
           style="
             background: linear-gradient(45deg, #6a82fb, #fc5c7d);
@@ -308,43 +308,166 @@
     />
 
     <!-- 添加/修改产品对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" append-to-body>
-      <el-form ref="productRef" :model="form" :rules="rules" label-width="80px">
+    <el-dialog :title="title" v-model="open" width="800px" append-to-body>
+      <el-form
+        ref="productRef"
+        :model="form"
+        :rules="rules"
+        label-width="100px"
+      >
+        <!-- 产品名称 -->
         <el-form-item label="产品名称" prop="productName">
           <el-input v-model="form.productName" placeholder="请输入产品名称" />
         </el-form-item>
+
+        <!-- 分类选择 -->
+        <el-form-item label="产品分类" prop="categoryId">
+          <el-select
+            v-model="form.categoryId"
+            placeholder="请选择分类"
+            clearable
+          >
+            <el-option
+              v-for="item in categoryList"
+              :key="item.categoryId"
+              :label="item.categoryName"
+              :value="item.categoryId"
+            />
+          </el-select>
+        </el-form-item>
+
+        <!-- 多图上传 -->
+        <el-form-item label="产品图片" prop="mainImg">
+          <!-- 上传组件 -->
+          <image-upload
+            v-model="form.mainImg"
+            :limit="5"
+            :fileType="['png', 'jpg', 'jpeg']"
+            :isShowTip="true"
+          />
+          <div class="upload-tip-container">
+            <el-icon class="tip-icon"><InfoFilled /></el-icon>
+            <span class="tip-text"
+              >第一张图片将作为产品主图，后续图片将展示在详情页轮播区</span
+            >
+          </div>
+        </el-form-item>
+
+        <!-- 规格相关字段 -->
+        <el-row :gutter="20">
+          <!-- 规格数值 -->
+          <el-col :span="12">
+            <el-form-item label="规格数值" prop="specificationValue">
+              <el-input-number
+                v-model="form.specificationValue"
+                :min="0"
+                :precision="3"
+                placeholder="数值"
+              />
+              <div class="upload-tip-container">
+                <el-icon class="tip-icon"><InfoFilled /></el-icon>
+                <span class="tip-text">请填写产品实际规格数值（如净含量）</span>
+              </div>
+            </el-form-item>
+          </el-col>
+          <!-- 规格单位 -->
+          <el-col :span="12">
+            <el-form-item label="规格单位" prop="specificationUnit">
+              <el-select v-model="form.specificationUnit" placeholder="单位">
+                <el-option label="克" value="g" />
+                <el-option label="千克" value="kg" />
+                <el-option label="斤" value="jin" />
+              </el-select>
+              <div class="upload-tip-container">
+                <el-icon class="tip-icon"><InfoFilled /></el-icon>
+                <span class="tip-text"
+                  >请选择相对于"计价单位"的所属规格单位</span
+                >
+              </div>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 价格库存相关 -->
+        <el-row :gutter="20">
+          <!-- 计价单位 -->
+          <el-col :span="12">
+            <el-form-item label="计价单位" prop="priceUnit">
+              <el-select v-model="form.priceUnit" placeholder="计价单位">
+                <el-option label="个" value="piece" />
+                <el-option label="盒" value="box" />
+                <el-option label="斤(散装称重)" value="jin" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <!-- 产品价格 -->
+          <el-col :span="12">
+            <el-form-item label="产品价格" prop="price">
+              <el-input-number
+                v-model="form.price"
+                :min="0"
+                :precision="2"
+                placeholder="价格"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 库存管理 -->
+        <el-row :gutter="20">
+          <!-- 库存数量 -->
+          <el-col :span="12">
+            <el-form-item label="库存数量" prop="stock">
+              <el-input-number
+                v-model="form.stock"
+                :min="0"
+                placeholder="库存"
+              />
+            </el-form-item>
+          </el-col>
+
+          <!-- 库存预警 -->
+          <el-col :span="12">
+            <el-form-item label="库存预警" prop="stockAlert">
+              <el-input-number
+                v-model="form.stockAlert"
+                :min="0"
+                placeholder="预警值"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 标签多选 -->
+        <el-form-item label="产品标签" prop="tagIds">
+          <el-select
+            v-model="form.tagIds"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            :max-collapse-tags="3"
+            placeholder="请选择标签"
+          >
+            <el-option
+              v-for="item in tagList"
+              :key="item.tagId"
+              :label="item.tagName"
+              :value="item.tagId"
+            />
+          </el-select>
+        </el-form-item>
+
+        <!-- 产品描述 -->
         <el-form-item label="产品描述" prop="productDesc">
           <el-input
             v-model="form.productDesc"
             type="textarea"
-            placeholder="请输入内容"
+            :rows="3"
+            placeholder="请输入产品详细描述"
           />
-        </el-form-item>
-        <el-form-item label="产品主图" prop="mainImg">
-          <image-upload v-model="form.storeLogo" />
-        </el-form-item>
-        <el-form-item label="规格数值" prop="specificationValue">
-          <el-input
-            v-model="form.specificationValue"
-            placeholder="请输入规格数值"
-          />
-        </el-form-item>
-        <el-form-item label="规格单位" prop="specificationUnit">
-          <el-input
-            v-model="form.specificationUnit"
-            placeholder="请输入规格单位"
-          />
-        </el-form-item>
-        <el-form-item label="计价单位" prop="priceUnit">
-          <el-input v-model="form.priceUnit" placeholder="请输入计价单位" />
-        </el-form-item>
-        <el-form-item label="产品价格" prop="price">
-          <el-input v-model="form.price" placeholder="请输入产品价格" />
-        </el-form-item>
-        <el-form-item label="库存数量" prop="stock">
-          <el-input v-model="form.stock" placeholder="请输入库存数量" />
         </el-form-item>
       </el-form>
+
       <template #footer>
         <div class="dialog-footer">
           <el-button type="primary" @click="submitForm">确 定</el-button>
@@ -562,6 +685,7 @@ import {
 } from "@/api/manage/product";
 import { listCategory, addCategory } from "@/api/manage/category";
 import { listStore } from "@/api/manage/store";
+import { listTag } from "@/api/manage/tag";
 
 // 查询参数
 import { loadAllParams } from "@/api/page";
@@ -592,6 +716,8 @@ const userStore = useUserStore();
 const store = ref(null);
 // 分类数据
 const categoryList = ref([]);
+// 标签数据
+const tagList = ref([]);
 
 // 选中的产品ID数组
 const ids = ref([]);
@@ -642,6 +768,9 @@ const data = reactive({
     productCode: [
       { required: true, message: "产品编号不能为空", trigger: "blur" },
     ],
+    mainImg: [
+      { required: true, message: "产品图片不能为空", trigger: "change" },
+    ],
     specificationValue: [
       { required: true, message: "规格数值不能为空", trigger: "blur" },
     ],
@@ -651,9 +780,18 @@ const data = reactive({
     priceUnit: [
       { required: true, message: "计价单位不能为空", trigger: "blur" },
     ],
-    price: [{ required: true, message: "产品价格不能为空", trigger: "blur" }],
-    unitPrice: [
-      { required: true, message: "单位价格不能为空", trigger: "blur" },
+    price: [
+      {
+        required: true,
+        validator: (_, value, callback) => {
+          if (value <= 0) {
+            callback(new Error("价格必须大于0"));
+          } else {
+            callback();
+          }
+        },
+        trigger: "blur",
+      },
     ],
     stock: [{ required: true, message: "库存数量不能为空", trigger: "blur" }],
     totalSales: [
@@ -677,7 +815,7 @@ const data = reactive({
     ],
     storeId: [{ required: true, message: "店铺ID不能为空", trigger: "blur" }],
     categoryId: [
-      { required: true, message: "分类ID不能为空", trigger: "blur" },
+      { required: true, message: "分类名称不能为空", trigger: "blur" },
     ],
     createTime: [
       { required: true, message: "创建时间不能为空", trigger: "blur" },
@@ -715,16 +853,16 @@ function cancel() {
 function reset() {
   form.value = {
     productId: null,
-    productName: null,
+    productName: "",
     productCode: null,
-    productDesc: null,
+    productDesc: "",
     productStatus: null,
-    mainImg: null,
+    mainImg: "",
     specificationValue: null,
     specificationUnit: null,
     priceUnit: null,
-    price: null,
-    stock: null,
+    price: 0,
+    stock: 0,
     totalSales: null,
     avgRating: null,
     reviewCount: null,
@@ -735,8 +873,9 @@ function reset() {
     updateTime: null,
     createBy: null,
     updateBy: null,
-    stockAlert: null,
+    stockAlert: 0,
     tagNames: [],
+    tagIds: [],
   };
   //只用得到这两个属性
   categoryForm.value = {
@@ -796,7 +935,12 @@ function submitForm() {
           getList();
         });
       } else {
-        addProduct(form.value).then((response) => {
+        addProduct({
+          product: {
+            ...form.value,
+          },
+          tagIds: form.value.tagIds,
+        }).then((response) => {
           proxy.$modal.msgSuccess("新增成功");
           open.value = false;
           getList();
@@ -913,6 +1057,14 @@ function getCategorylist() {
   });
 }
 
+/** 加载标签数据 */
+// 全部加载
+function getTagList() {
+  listTag({ loadAllParams }).then((response) => {
+    tagList.value = response.rows;
+  });
+}
+
 // 获取分类名称
 function getCategoryName(categoryId) {
   const category = categoryList.value.find(
@@ -954,9 +1106,10 @@ function submitCategoryForm() {
   });
 }
 
-// 页面加载时获取列表数据、分类数据
+// 页面加载时获取列表数据、分类数据、标签数据
 getStoreInfo();
 getCategorylist();
+getTagList();
 </script>
 
 <style scoped>
@@ -1306,5 +1459,40 @@ getCategorylist();
   padding: 4px 10px;
   background-color: #f5f7fa;
   color: #606266;
+}
+
+/** 新增/修改对话框相关 */
+.upload-tip-container {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-radius: 4px;
+  border-left: 3px solid #409eff;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); /* 新增阴影效果 */
+  line-height: 1.2;
+  transition: box-shadow 0.3s; /* 添加过渡动画 */
+}
+
+/* 悬浮时阴影加深 */
+.upload-tip-container:hover {
+  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.15);
+}
+
+.tip-icon {
+  vertical-align: middle;
+  margin-right: 8px;
+  color: #409eff;
+  font-size: 14px;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1)); /* 图标阴影 */
+}
+
+.tip-text {
+  font-size: 12px;
+  color: #606266;
+  display: inline-block;
+  vertical-align: middle;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5); /* 文字阴影 */
 }
 </style>
