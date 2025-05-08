@@ -352,6 +352,23 @@
               </div>
             </div>
 
+            <!-- 新增产品标签 -->
+            <div
+              class="product-tags"
+              v-if="form.tagNames && form.tagNames.length"
+            >
+              <el-tag
+                v-for="(tag, index) in form.tagNames"
+                :key="index"
+                type="info"
+                size="small"
+                effect="plain"
+                class="tag-item"
+              >
+                {{ tag }}
+              </el-tag>
+            </div>
+
             <!-- 业务信息 -->
             <div class="product-stats">
               <!-- 库存 -->
@@ -633,6 +650,7 @@ function reset() {
     createBy: null,
     updateBy: null,
     stockAlert: null,
+    tagNames: [],
   };
   proxy.resetForm("productRef");
 }
@@ -813,7 +831,7 @@ function getCategorySourceType(categoryId) {
   );
   if (!category) return { type: "info", label: "未知" };
 
-  return category.sourceType === "系统"
+  return category.sourceType === 0
     ? { type: "success", label: "系统分类" }
     : { type: "warning", label: "商家分类" };
 }
@@ -1154,6 +1172,21 @@ getCategorylist();
 }
 
 .info-item .value {
+  color: #606266;
+}
+
+/* 产品标签样式 */
+.product-tags {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-item {
+  border-radius: 12px;
+  padding: 4px 10px;
+  background-color: #f5f7fa;
   color: #606266;
 }
 </style>
