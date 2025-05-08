@@ -85,6 +85,41 @@
           >导出</el-button
         >
       </el-col>
+
+      <!-- 新增分类申请按钮 -->
+      <el-col :span="1.5">
+        <el-button
+          type="primary"
+          plain
+          icon="Collection"
+          @click="categoryOpen = true"
+          v-hasPermi="['manage:category:add']"
+          style="
+            background: linear-gradient(45deg, #6a82fb, #fc5c7d);
+            border-color: transparent;
+            color: white;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+          "
+          :style="{
+            '--hover-shadow': '0 4px 15px rgba(106,130,251,0.4)',
+            '--gradient-start': '#6a82fb',
+            '--gradient-end': '#fc5c7d',
+          }"
+          @mouseenter="(e) => (e.target.style.transform = 'scale(1.05)')"
+          @mouseleave="(e) => (e.target.style.transform = 'scale(1)')"
+        >
+          <template #icon>
+            <el-icon style="color: white; margin-right: 5px">
+              <Collection />
+            </el-icon>
+          </template>
+          分类申请
+        </el-button>
+      </el-col>
+
       <!-- 是否显示搜索 -->
       <right-toolbar
         v-model:showSearch="showSearch"
@@ -473,6 +508,46 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 提交分类对话框 -->
+    <el-dialog
+      :title="title"
+      v-model="categoryOpen"
+      width="500px"
+      append-to-body
+    >
+      <!-- 表单填写 -->
+      <el-form
+        ref="categoryRef"
+        :model="categoryForm"
+        :rules="categoryRules"
+        label-width="80px"
+        status-icon
+      >
+        <el-form-item label="分类名称" prop="categoryName">
+          <el-input
+            v-model="categoryForm.categoryName"
+            placeholder="请输入分类名称"
+          />
+        </el-form-item>
+        <el-form-item label="分类描述" prop="categoryDesc">
+          <el-input
+            v-model="categoryForm.categoryDesc"
+            type="textarea"
+            placeholder="请输入内容"
+          />
+        </el-form-item>
+      </el-form>
+      <!-- 提交按钮 -->
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="submitCategoryForm"
+            >确 定</el-button
+          >
+          <el-button @click="cancel">取 消</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -485,7 +560,7 @@ import {
   addProduct,
   updateProduct,
 } from "@/api/manage/product";
-import { listCategory } from "@/api/manage/category";
+import { listCategory, addCategory } from "@/api/manage/category";
 import { listStore } from "@/api/manage/store";
 
 // 查询参数
@@ -527,6 +602,8 @@ const open = ref(false);
 const infoOpen = ref(false);
 // 主视图加载状态
 const loading = ref(true);
+// 分类申请对话框开关
+const categoryOpen = ref(false);
 
 // 对话框标题
 const title = ref("");
@@ -544,8 +621,10 @@ const activeFilter = ref("all");
 
 // 定义响应式表单数据和校验规则
 const data = reactive({
-  // 表单对象
+  // (主)产品表单对象
   form: {},
+  // 分类表单对象
+  categoryForm: {},
   // 查询参数对象
   queryParams: {
     pageNum: 1,
@@ -612,15 +691,22 @@ const data = reactive({
       { required: true, message: "库存预警不能为空", trigger: "blur" },
     ],
   },
+  // 分类表单校验规则
+  categoryRules: {
+    categoryName: [
+      { required: true, message: "分类名称不能为空", trigger: "blur" },
+    ],
+  },
 });
 
 // 解构响应式数据
-const { queryParams, form, rules } = toRefs(data);
+const { queryParams, form, categoryForm, rules, categoryRules } = toRefs(data);
 
 // 取消按钮
 function cancel() {
   open.value = false;
   infoOpen.value = false;
+  categoryOpen.value = false;
   reset();
 }
 
@@ -652,7 +738,13 @@ function reset() {
     stockAlert: null,
     tagNames: [],
   };
+  //只用得到这两个属性
+  categoryForm.value = {
+    categoryName: null,
+    categoryDesc: null,
+  };
   proxy.resetForm("productRef");
+  proxy.resetForm("categoryRef");
 }
 
 /** 搜索按钮操作 */
@@ -801,6 +893,7 @@ function handleFilter(status) {
 
 /** 打开详情对话框 */
 function handleInfo(row) {
+  console.log(row);
   // 清空表单
   reset();
   // 赋值，更改标题，打开对话框
@@ -810,8 +903,12 @@ function handleInfo(row) {
 }
 
 /** 加载分类数据 */
+// 且一定是审核通过的分类
 function getCategorylist() {
-  listCategory(loadAllParams).then((response) => {
+  listCategory({
+    ...loadAllParams,
+    auditStatus: 1,
+  }).then((response) => {
     categoryList.value = response.rows;
   });
 }
@@ -834,6 +931,27 @@ function getCategorySourceType(categoryId) {
   return category.sourceType === 0
     ? { type: "success", label: "系统分类" }
     : { type: "warning", label: "商家分类" };
+}
+
+// 打开分类申请对话框
+function applyCategory() {
+  // 清空表单
+  reset();
+  // 打开对话框，设置标题
+  title.value = "分类申请";
+  categoryOpen.value = true;
+}
+
+// 提交分类表单
+function submitCategoryForm() {
+  proxy.$refs["categoryRef"].validate((valid) => {
+    if (valid) {
+      addCategory(categoryForm.value).then(() => {
+        proxy.$modal.msgSuccess("分类申请成功");
+        categoryOpen.value = false;
+      });
+    }
+  });
 }
 
 // 页面加载时获取列表数据、分类数据
