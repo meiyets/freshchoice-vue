@@ -155,7 +155,7 @@
         <!-- 表格列配置 -->
         <el-table-column type="selection" width="55" align="center" />
         <!-- 序号 -->
-        <el-table-column label="序号" align="center" type="index" width="55"/>
+        <el-table-column label="序号" align="center" type="index" width="55" />
         <!-- 名称 -->
         <el-table-column label="产品名称" align="center" prop="productName" />
         <!-- 编码 -->
@@ -179,15 +179,14 @@
         </el-table-column>
 
         <!-- 库存 -->
-        <el-table-column
-          label="库存数量"
-          align="center"
-          prop="stock"
-          sortable
-        >
+        <el-table-column label="库存数量" align="center" prop="stock" sortable>
           <template #default="scope">
             <div class="stock-container">
-              <span :class="{ 'stock-warning': scope.row.stock <= scope.row.stockAlert }">
+              <span
+                :class="{
+                  'stock-warning': scope.row.stock <= scope.row.stockAlert,
+                }"
+              >
                 {{ scope.row.stock }}
               </span>
               <el-tooltip
@@ -240,20 +239,25 @@
           <template #default="scope">
             <el-button
               link
+              type="success"
+              icon="CreditCard"
+              @click="handleInfo(scope.row)"
+              v-hasPermi="['manage:product:list']"
+            ></el-button>
+            <el-button
+              link
               type="primary"
               icon="Edit"
               @click="handleUpdate(scope.row)"
               v-hasPermi="['manage:product:edit']"
-              >修改</el-button
-            >
+            ></el-button>
             <el-button
               link
-              type="primary"
+              type="danger"
               icon="Delete"
               @click="handleDelete(scope.row)"
               v-hasPermi="['manage:product:remove']"
-              >删除</el-button
-            >
+            ></el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -313,6 +317,145 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 查看详情对话框 -->
+    <el-dialog :title="title" v-model="infoOpen" width="800px">
+      <div class="product-card">
+        <!-- 顶部区域：主图和核心信息 -->
+        <div class="card-header">
+          <!-- 产品主图 -->
+          <div class="product-image">
+            <image-preview :src="form.mainImg" :width="300" :height="300" />
+          </div>
+
+          <!-- 核心信息 -->
+          <div class="product-core-info">
+            <!-- 名称、编号、状态 -->
+            <div class="product-title">
+              <h2>{{ form.productName }}</h2>
+              <span class="product-code">编号：{{ form.productCode }}</span>
+              <dict-tag
+                :options="product_status"
+                :value="form.productStatus"
+                class="status-tag"
+              />
+            </div>
+            <!-- 价格相关 -->
+            <div class="product-price">
+              <div class="price-tag">
+                <span class="currency">¥</span>
+                <span class="amount">{{ form.price }}</span>
+                <span class="unit">/{{ form.priceUnit }}</span>
+              </div>
+              <div class="specification">
+                规格：{{ form.specificationValue }}{{ form.specificationUnit }}
+              </div>
+            </div>
+
+            <!-- 业务信息 -->
+            <div class="product-stats">
+              <!-- 库存 -->
+              <div class="stat-item">
+                <span class="label">库存</span>
+                <span
+                  class="value"
+                  :class="{ warning: form.stock <= form.stockAlert }"
+                >
+                  {{ form.stock }}
+                  <el-tooltip
+                    v-if="form.stock <= form.stockAlert"
+                    effect="dark"
+                    :content="`库存已低于预警值(${form.stockAlert})`"
+                    placement="top"
+                  >
+                    <el-icon class="warning-icon"><Warning /></el-icon>
+                  </el-tooltip>
+                </span>
+              </div>
+              <!-- 销量 -->
+              <div class="stat-item">
+                <span class="label">销量</span>
+                <span class="value">{{ form.totalSales }}</span>
+              </div>
+              <!-- 评分 -->
+              <div class="stat-item">
+                <span class="label">评分</span>
+                <div class="rating-value">
+                  <el-rate
+                    v-model="form.avgRating"
+                    disabled
+                    show-score
+                    text-color="#ff9900"
+                    size="small"
+                    score-template="{value}"
+                  />
+                  <span class="review-count"
+                    >({{ form.reviewCount }}条评价)</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 店铺信息 -->
+        <div class="store-info">
+          <el-icon><Shop /></el-icon>
+          <span class="store-name">{{ form.storeName }}</span>
+        </div>
+
+        <!-- 分类信息 -->
+        <div class="category-info">
+          <el-icon><Collection /></el-icon>
+          <div class="category-content">
+            <span class="category-name">{{
+              getCategoryName(form.categoryId)
+            }}</span>
+            <el-tag
+              :type="getCategorySourceType(form.categoryId).type"
+              size="small"
+              effect="plain"
+              class="source-tag"
+            >
+              {{ getCategorySourceType(form.categoryId).label }}
+            </el-tag>
+          </div>
+        </div>
+
+        <!-- 产品描述 -->
+        <div class="product-description">
+          <h3>产品描述</h3>
+          <p>{{ form.productDesc }}</p>
+        </div>
+
+        <!-- 其他信息 -->
+        <div class="additional-info">
+          <div class="info-item">
+            <span class="label">创建时间：</span>
+            <span class="value">{{ form.createTime }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">更新时间：</span>
+            <span class="value">{{ form.updateTime }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">创建人：</span>
+            <span class="value">{{ form.createBy }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">更新人：</span>
+            <span class="value">{{ form.updateBy }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 对话框操作按钮 -->
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="cancel">关 闭</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -325,7 +468,12 @@ import {
   addProduct,
   updateProduct,
 } from "@/api/manage/product";
+import { listCategory } from "@/api/manage/category";
 import { listStore } from "@/api/manage/store";
+
+// 查询参数
+import { loadAllParams } from "@/api/page";
+
 // 导入用户信息存储组件
 import useUserStore from "@/store/modules/user";
 import { ElMessage } from "element-plus";
@@ -337,7 +485,7 @@ import {
   Bell,
   CircleClose,
 } from "@element-plus/icons-vue";
-
+import { Shop, Collection } from "@element-plus/icons-vue";
 // 获取全局代理对象和字典数据
 const { proxy } = getCurrentInstance();
 const { product_status } = proxy.useDict("product_status");
@@ -350,14 +498,16 @@ const total = ref(0);
 const userStore = useUserStore();
 // 当前用户的店铺
 const store = ref(null);
-// 当前选中的筛选状态
-const activeFilter = ref("all");
+// 分类数据
+const categoryList = ref([]);
 
 // 选中的产品ID数组
 const ids = ref([]);
 
 // 新增/编辑对话框开关
 const open = ref(false);
+// 查看详情对话框开关
+const infoOpen = ref(false);
 // 主视图加载状态
 const loading = ref(true);
 
@@ -372,6 +522,8 @@ const single = ref(true);
 const multiple = ref(true);
 // 标记：是否返回预警数据
 const isAlert = ref(false);
+// 标记：当前选中的筛选状态
+const activeFilter = ref("all");
 
 // 定义响应式表单数据和校验规则
 const data = reactive({
@@ -448,15 +600,15 @@ const data = reactive({
 // 解构响应式数据
 const { queryParams, form, rules } = toRefs(data);
 
-
-
 // 取消按钮
 function cancel() {
   open.value = false;
+  infoOpen.value = false;
   reset();
 }
 
 // 表单重置
+// 要包含整个Product实体
 function reset() {
   form.value = {
     productId: null,
@@ -464,6 +616,23 @@ function reset() {
     productCode: null,
     productDesc: null,
     productStatus: null,
+    mainImg: null,
+    specificationValue: null,
+    specificationUnit: null,
+    priceUnit: null,
+    price: null,
+    stock: null,
+    totalSales: null,
+    avgRating: null,
+    reviewCount: null,
+    storeName: null,
+    storeId: null,
+    categoryId: null,
+    createTime: null,
+    updateTime: null,
+    createBy: null,
+    updateBy: null,
+    stockAlert: null,
   };
   proxy.resetForm("productRef");
 }
@@ -612,8 +781,46 @@ function handleFilter(status) {
   getList();
 }
 
-// 页面加载时获取列表数据
+/** 打开详情对话框 */
+function handleInfo(row) {
+  // 清空表单
+  reset();
+  // 赋值，更改标题，打开对话框
+  form.value = row;
+  title.value = `${form.value.productName}`;
+  infoOpen.value = true;
+}
+
+/** 加载分类数据 */
+function getCategorylist() {
+  listCategory(loadAllParams).then((response) => {
+    categoryList.value = response.rows;
+  });
+}
+
+// 获取分类名称
+function getCategoryName(categoryId) {
+  const category = categoryList.value.find(
+    (item) => item.categoryId === categoryId
+  );
+  return category ? category.categoryName : "未知分类";
+}
+
+// 获取分类来源类型
+function getCategorySourceType(categoryId) {
+  const category = categoryList.value.find(
+    (item) => item.categoryId === categoryId
+  );
+  if (!category) return { type: "info", label: "未知" };
+
+  return category.sourceType === "系统"
+    ? { type: "success", label: "系统分类" }
+    : { type: "warning", label: "商家分类" };
+}
+
+// 页面加载时获取列表数据、分类数据
 getStoreInfo();
+getCategorylist();
 </script>
 
 <style scoped>
@@ -709,13 +916,18 @@ getStoreInfo();
 }
 
 .status-filter .el-button.is-active::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -2px;
   left: 0;
   width: 100%;
   height: 4px;
-  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.9), transparent);
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.9),
+    transparent
+  );
   border-radius: 2px;
 }
 
@@ -737,12 +949,12 @@ getStoreInfo();
 }
 
 .stock-container .stock-warning {
-  color: #F56C6C;
+  color: #f56c6c;
   font-weight: bold;
 }
 
 .warning-icon {
-  color: #E6A23C;
+  color: #e6a23c;
   font-size: 16px;
   position: absolute;
   margin-left: 50px; /* 调整图标位置，确保不影响数字居中 */
@@ -751,5 +963,197 @@ getStoreInfo();
 .warning-icon:hover {
   transform: scale(1.1);
   transition: transform 0.2s ease;
+}
+
+/* 产品详情卡片样式 */
+.product-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.card-header {
+  display: flex;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.product-image {
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.product-core-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.product-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.product-title h2 {
+  margin: 0;
+  font-size: 24px;
+  color: #303133;
+}
+
+.product-code {
+  color: #909399;
+  font-size: 14px;
+}
+
+.status-tag {
+  margin-left: auto;
+}
+
+.price-tag {
+  display: flex;
+  align-items: baseline;
+  color: #f56c6c;
+  margin-bottom: 8px;
+}
+
+.currency {
+  font-size: 16px;
+  margin-right: 4px;
+}
+
+.amount {
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.unit {
+  font-size: 14px;
+  color: #909399;
+  margin-left: 4px;
+}
+
+.specification {
+  color: #606266;
+  font-size: 14px;
+}
+
+.product-stats {
+  display: flex;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-item .label {
+  color: #909399;
+  font-size: 14px;
+}
+
+.stat-item .value {
+  font-size: 16px;
+  color: #303133;
+}
+
+.stat-item .value.warning {
+  color: #f56c6c;
+}
+
+.warning-icon {
+  color: #e6a23c;
+  margin-left: 4px;
+}
+
+.rating-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-count {
+  color: #909399;
+  font-size: 14px;
+}
+
+.store-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid #ebeef5;
+  margin: 20px 0 0 0;
+}
+
+.category-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid #ebeef5;
+  margin: 0 0 20px 0;
+}
+
+.category-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.category-name {
+  font-size: 15px;
+  color: #606266;
+}
+
+.source-tag {
+  font-size: 12px;
+}
+
+.store-name {
+  color: #409eff;
+  font-size: 16px;
+}
+
+.product-description {
+  margin: 20px 0;
+}
+
+.product-description h3 {
+  font-size: 18px;
+  color: #303133;
+  margin-bottom: 12px;
+}
+
+.product-description p {
+  color: #606266;
+  line-height: 1.6;
+}
+
+.additional-info {
+  background: #f5f7fa;
+  border-radius: 4px;
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.info-item {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.info-item .label {
+  color: #909399;
+  width: 100px;
+}
+
+.info-item .value {
+  color: #606266;
 }
 </style>
