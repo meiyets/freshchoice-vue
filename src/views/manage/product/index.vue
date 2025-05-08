@@ -155,7 +155,7 @@
         <!-- 表格列配置 -->
         <el-table-column type="selection" width="55" align="center" />
         <!-- 序号 -->
-        <el-table-column label="序号" align="center" type="index" />
+        <el-table-column label="序号" align="center" type="index" width="55"/>
         <!-- 名称 -->
         <el-table-column label="产品名称" align="center" prop="productName" />
         <!-- 编码 -->
@@ -184,7 +184,23 @@
           align="center"
           prop="stock"
           sortable
-        />
+        >
+          <template #default="scope">
+            <div class="stock-container">
+              <span :class="{ 'stock-warning': scope.row.stock <= scope.row.stockAlert }">
+                {{ scope.row.stock }}
+              </span>
+              <el-tooltip
+                v-if="scope.row.stock <= scope.row.stockAlert"
+                effect="dark"
+                :content="`库存已低于预警值(${scope.row.stockAlert})`"
+                placement="top"
+              >
+                <el-icon class="warning-icon"><Warning /></el-icon>
+              </el-tooltip>
+            </div>
+          </template>
+        </el-table-column>
 
         <!-- 销量 -->
         <el-table-column
@@ -459,6 +475,7 @@ function handleQuery() {
 }
 
 /** 重置按钮操作 */
+// 只会影响到搜索框表单中的两项
 function resetQuery() {
   proxy.resetForm("queryRef");
   handleQuery();
@@ -551,6 +568,7 @@ function getStoreInfo() {
       // 存储店铺，并且作为固定查询参数
       store.value = storeList[0];
       queryParams.value.storeId = store.value.storeId;
+      getList();
     })
     .catch((error) => {
       console.error("获取数据失败：", error);
@@ -596,7 +614,6 @@ function handleFilter(status) {
 
 // 页面加载时获取列表数据
 getStoreInfo();
-getList();
 </script>
 
 <style scoped>
@@ -616,6 +633,7 @@ getList();
   font-size: 14px;
   color: #ff9900;
 }
+
 /* 按钮组相关 */
 .table-container {
   position: relative;
@@ -704,5 +722,34 @@ getList();
 .status-filter .el-button.is-active .el-icon {
   transform: scale(1.1);
   filter: brightness(1.2);
+}
+/**库存-预警数值提示 */
+.stock-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.stock-container span {
+  min-width: 40px; /* 根据实际数字长度调整 */
+  text-align: center;
+}
+
+.stock-container .stock-warning {
+  color: #F56C6C;
+  font-weight: bold;
+}
+
+.warning-icon {
+  color: #E6A23C;
+  font-size: 16px;
+  position: absolute;
+  margin-left: 50px; /* 调整图标位置，确保不影响数字居中 */
+}
+
+.warning-icon:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
 }
 </style>
