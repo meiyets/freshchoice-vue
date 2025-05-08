@@ -92,76 +92,156 @@
       ></right-toolbar>
     </el-row>
 
-    <!-- 产品数据表格 -->
-    <el-table
-      v-loading="loading"
-      :data="productList"
-      @selection-change="handleSelectionChange"
-    >
-      <!-- 表格列配置 -->
-      <el-table-column type="selection" width="55" align="center" />
-      <!-- 序号 -->
-      <el-table-column label="序号" align="center" type="index" />
-      <!-- 名称 -->
-      <el-table-column label="产品名称" align="center" prop="productName" />
-      <!-- 编码 -->
-      <el-table-column label="产品编号" align="center" prop="productCode" />
-
-      <!-- 主图 -->
-      <el-table-column label="产品主图" align="center" prop="mainImg">
-        <template #default="scope">
-          <image-preview :src="scope.row.mainImg" :width="50" :height="50" />
-        </template>
-      </el-table-column>
-
-      <!-- 价格 -->
-      <el-table-column label="产品价格" align="center" prop="price" />
-      <!-- 状态 -->
-      <el-table-column
-        label="产品状态(0:上架 1:下架 2:售罄)"
-        align="center"
-        prop="productStatus"
-      >
-        <template #default="scope">
-          <dict-tag
-            :options="product_status"
-            :value="scope.row.productStatus"
-          />
-        </template>
-      </el-table-column>
-      <!-- 库存 -->
-      <el-table-column label="库存数量" align="center" prop="stock" />
-      <!-- 销量 -->
-      <el-table-column label="产品销量" align="center" prop="totalSales" />
-      <!-- 评价 -->
-      <el-table-column label="产品评价" align="center" prop="avgRating" />
-
-      <!-- 操作按钮 -->
-      <el-table-column
-        label="操作"
-        align="center"
-        class-name="small-padding fixed-width"
-      >
-        <template #default="scope">
+    <!-- 表格容器 -->
+    <div class="table-container">
+      <!-- 状态筛选按钮组 -->
+      <div class="status-filter">
+        <el-button-group>
           <el-button
-            link
-            type="primary"
-            icon="Edit"
-            @click="handleUpdate(scope.row)"
-            v-hasPermi="['manage:product:edit']"
-            >修改</el-button
+            type="info"
+            size="large"
+            round
+            @click="handleFilter('all')"
+            :class="{ 'is-active': activeFilter === 'all' }"
           >
+            <el-icon><List /></el-icon>All
+          </el-button>
           <el-button
-            link
-            type="primary"
-            icon="Delete"
-            @click="handleDelete(scope.row)"
-            v-hasPermi="['manage:product:remove']"
-            >删除</el-button
+            type="success"
+            size="large"
+            round
+            @click="handleFilter(0)"
+            :class="{ 'is-active': activeFilter === 0 }"
           >
-        </template>
-      </el-table-column>
-    </el-table>
+            <el-icon><Select /></el-icon>上架ing
+          </el-button>
+          <el-button
+            type="warning"
+            size="large"
+            round
+            @click="handleFilter(1)"
+            :class="{ 'is-active': activeFilter === 1 }"
+          >
+            <el-icon><Warning /></el-icon>下架ing
+          </el-button>
+          <el-button
+            type="danger"
+            plain
+            size="large"
+            round
+            @click="handleFilter('alert')"
+            :class="{ 'is-active': activeFilter === 'alert' }"
+          >
+            <el-icon><Bell /></el-icon>预警ing
+          </el-button>
+          <el-button
+            type="danger"
+            size="large"
+            round
+            @click="handleFilter(2)"
+            :class="{ 'is-active': activeFilter === 2 }"
+          >
+            <el-icon><CircleClose /></el-icon>售罄！
+          </el-button>
+        </el-button-group>
+      </div>
+
+      <!-- 主视图数据 -->
+      <el-table
+        v-loading="loading"
+        :data="productList"
+        @selection-change="handleSelectionChange"
+      >
+        <!-- 表格列配置 -->
+        <el-table-column type="selection" width="55" align="center" />
+        <!-- 序号 -->
+        <el-table-column label="序号" align="center" type="index" />
+        <!-- 名称 -->
+        <el-table-column label="产品名称" align="center" prop="productName" />
+        <!-- 编码 -->
+        <el-table-column label="产品编号" align="center" prop="productCode" />
+
+        <!-- 主图 -->
+        <el-table-column label="产品主图" align="center" prop="mainImg">
+          <template #default="scope">
+            <image-preview :src="scope.row.mainImg" :width="50" :height="50" />
+          </template>
+        </el-table-column>
+
+        <!-- 产品状态 -->
+        <el-table-column label="产品状态" align="center" prop="productStatus">
+          <template #default="scope">
+            <dict-tag
+              :options="product_status"
+              :value="scope.row.productStatus"
+            />
+          </template>
+        </el-table-column>
+
+        <!-- 库存 -->
+        <el-table-column
+          label="库存数量"
+          align="center"
+          prop="stock"
+          sortable
+        />
+
+        <!-- 销量 -->
+        <el-table-column
+          label="产品销量"
+          align="center"
+          prop="totalSales"
+          sortable
+        />
+
+        <!-- 评价 -->
+        <el-table-column
+          label="产品评价"
+          align="center"
+          prop="avgRating"
+          sortable
+        >
+          <template #default="scope">
+            <div class="rating-container">
+              <el-rate
+                v-model="scope.row.avgRating"
+                disabled
+                show-score
+                text-color="#ff9900"
+                size="small"
+                score-template="{value}"
+              />
+            </div>
+          </template>
+        </el-table-column>
+
+        <!-- 操作按钮 -->
+        <el-table-column
+          label="操作"
+          align="center"
+          class-name="small-padding fixed-width"
+        >
+          <template #default="scope">
+            <el-button
+              link
+              type="primary"
+              icon="Edit"
+              @click="handleUpdate(scope.row)"
+              v-hasPermi="['manage:product:edit']"
+              >修改</el-button
+            >
+            <el-button
+              link
+              type="primary"
+              icon="Delete"
+              @click="handleDelete(scope.row)"
+              v-hasPermi="['manage:product:remove']"
+              >删除</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
     <!-- 分页组件 -->
     <pagination
@@ -233,6 +313,14 @@ import { listStore } from "@/api/manage/store";
 // 导入用户信息存储组件
 import useUserStore from "@/store/modules/user";
 import { ElMessage } from "element-plus";
+// 导入图标
+import {
+  List,
+  Select,
+  Warning,
+  Bell,
+  CircleClose,
+} from "@element-plus/icons-vue";
 
 // 获取全局代理对象和字典数据
 const { proxy } = getCurrentInstance();
@@ -246,6 +334,8 @@ const total = ref(0);
 const userStore = useUserStore();
 // 当前用户的店铺
 const store = ref(null);
+// 当前选中的筛选状态
+const activeFilter = ref("all");
 
 // 选中的产品ID数组
 const ids = ref([]);
@@ -264,6 +354,8 @@ const showSearch = ref(true);
 const single = ref(true);
 // 标记：是否禁用批量操作按钮
 const multiple = ref(true);
+// 标记：是否返回预警数据
+const isAlert = ref(false);
 
 // 定义响应式表单数据和校验规则
 const data = reactive({
@@ -275,6 +367,8 @@ const data = reactive({
     pageSize: 10,
     productName: null,
     productCode: null,
+    productStatus: null,
+    storeId: null, //只会存一次，之后不会再重置
   },
   // 表单验证规则
   rules: {
@@ -338,40 +432,7 @@ const data = reactive({
 // 解构响应式数据
 const { queryParams, form, rules } = toRefs(data);
 
-/** 查询产品列表数据 */
-function getList() {
-  loading.value = true;
 
-  listStore({
-    userId: userStore.id,
-  })
-    .then((response) => {
-      const storeList = response.rows;
-      if (storeList.length != 1) {
-        ElMessage.error("违法操作，该用户未绑定或绑定了多个店铺");
-        loading.value = false;
-        return Promise.reject("店铺数据异常");
-      }
-      store.value = storeList[0];
-      
-      // 返回下一个 Promise
-      return listProduct({
-        ...queryParams.value,
-        storeId: store.value.storeId,
-      });
-    })
-    .then((response) => {
-      productList.value = response.rows;
-      total.value = response.total;
-    })
-    .catch((error) => {
-      console.error("获取数据失败：", error);
-      ElMessage.error("获取数据失败");
-    })
-    .finally(() => {
-      loading.value = false;
-    });
-}
 
 // 取消按钮
 function cancel() {
@@ -386,25 +447,7 @@ function reset() {
     productName: null,
     productCode: null,
     productDesc: null,
-    mainImg: null,
-    specificationValue: null,
-    specificationUnit: null,
-    priceUnit: null,
-    price: null,
-    unitPrice: null,
-    stock: null,
-    totalSales: null,
     productStatus: null,
-    avgRating: null,
-    reviewCount: null,
-    storeName: null,
-    storeId: null,
-    categoryId: null,
-    createTime: null,
-    updateTime: null,
-    createBy: null,
-    updateBy: null,
-    stockAlert: null,
   };
   proxy.resetForm("productRef");
 }
@@ -493,6 +536,173 @@ function handleExport() {
   );
 }
 
+/** 获取店铺信息 */
+function getStoreInfo() {
+  listStore({
+    userId: userStore.id,
+  })
+    .then((response) => {
+      //得到的店铺应当只有一个
+      const storeList = response.rows;
+      if (storeList.length != 1) {
+        ElMessage.error("违法操作，该用户未绑定或绑定了多个店铺");
+        return Promise.reject("店铺数据异常");
+      }
+      // 存储店铺，并且作为固定查询参数
+      store.value = storeList[0];
+      queryParams.value.storeId = store.value.storeId;
+    })
+    .catch((error) => {
+      console.error("获取数据失败：", error);
+      ElMessage.error("获取数据失败");
+    });
+}
+
+/** 查询产品列表数据 */
+function getList() {
+  loading.value = true;
+  listProduct({
+    ...queryParams.value,
+    params: {
+      isAlert: isAlert.value,
+    },
+  }).then((response) => {
+    productList.value = response.rows;
+    total.value = response.total;
+    loading.value = false;
+  });
+}
+
+/** 状态筛选按钮操作 */
+function handleFilter(status) {
+  // 更新选中状态
+  activeFilter.value = status;
+
+  // all和预警不区分产品状态
+  if (status === "all" || status === "alert") {
+    queryParams.value.productStatus = null;
+  } else {
+    queryParams.value.productStatus = status;
+  }
+
+  // 预警状态设置预警标记
+  if (status === "alert") {
+    isAlert.value = true;
+  } else {
+    isAlert.value = false;
+  }
+  getList();
+}
+
 // 页面加载时获取列表数据
+getStoreInfo();
 getList();
 </script>
+
+<style scoped>
+.rating-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+:deep(.el-rate) {
+  display: inline-flex;
+  align-items: center;
+}
+
+:deep(.el-rate__text) {
+  margin-left: 8px;
+  font-size: 14px;
+  color: #ff9900;
+}
+/* 按钮组相关 */
+.table-container {
+  position: relative;
+  margin-top: 20px;
+}
+
+.status-filter {
+  position: absolute;
+  top: -60px;
+  right: 100px;
+  z-index: 2;
+  background: transparent;
+}
+
+.status-filter .el-button-group {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.status-filter .el-button {
+  margin: 0;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.status-filter .el-button:hover {
+  transform: translateY(-2px);
+}
+
+.status-filter .el-button .el-icon {
+  margin-right: 6px;
+  font-size: 16px;
+}
+
+/* 按钮样式优化 */
+.status-filter .el-button--info {
+  background-color: #909399;
+  color: white;
+}
+
+.status-filter .el-button--success {
+  background-color: #67c23a;
+  color: white;
+}
+
+.status-filter .el-button--warning {
+  background-color: #e6a23c;
+  color: white;
+}
+
+.status-filter .el-button--danger.is-plain {
+  background-color: white;
+  color: #f56c6c;
+  border: 1px solid #fbc4c4;
+}
+
+.status-filter .el-button--danger:not(.is-plain) {
+  background-color: #f56c6c;
+  color: white;
+}
+
+/* 按钮选中状态样式 */
+.status-filter .el-button.is-active {
+  transform: translateY(2px);
+  box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.2);
+  filter: brightness(0.85);
+  position: relative;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+.status-filter .el-button.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.9), transparent);
+  border-radius: 2px;
+}
+
+.status-filter .el-button.is-active .el-icon {
+  transform: scale(1.1);
+  filter: brightness(1.2);
+}
+</style>
