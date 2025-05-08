@@ -107,6 +107,7 @@ export const constantRoutes = [
     path: "/myStore/storefront",
     component: Layout,
     meta: { title: "店铺详情" },
+    hidden: true, // 在侧边栏中隐藏
     children: [
       {
         path: ":storeId", // 动态路由参数，用于不同店铺ID
@@ -116,7 +117,7 @@ export const constantRoutes = [
         meta: { title: "店铺详情", activeMenu: "/myStore/storefront" },
       },
       {
-        path: "",
+        path: "index",
         name: "MyStore",
         component: () => import("@/views/manage/storefront/index.vue"),
         props: { storeId: null },

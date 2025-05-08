@@ -500,7 +500,8 @@ let tooltipTimer = null;
 
 // 在组件挂载后启动定时器
 onMounted(() => {
-  if (!storeData.value.auditFlag) {
+  // 只有在非营业/停业状态且未提交审核时才显示提示
+  if (!storeData.value.auditFlag && ![1, 2].includes(storeData.value.storeStatus)) {
     startTooltipTimer();
   }
 });
@@ -521,6 +522,25 @@ const startTooltipTimer = () => {
     }, 2000); // 显示2秒后隐藏
   }, 5000); // 每5秒显示一次
 };
+// 监听店铺状态和审核标记的变化
+watch(
+  [
+    () => storeData.value.storeStatus,
+    () => storeData.value.auditFlag
+  ],
+  ([newStatus, newAuditFlag]) => {
+    // 清理现有定时器
+    if (tooltipTimer) {
+      clearInterval(tooltipTimer);
+      tooltipTimer = null;
+    }
+    
+    // 只有在非营业/停业状态且未提交审核时才启动定时器
+    if (!newAuditFlag && ![1, 2].includes(newStatus)) {
+      startTooltipTimer();
+    }
+  }
+);
 getStoreInfo();
 </script>
 
