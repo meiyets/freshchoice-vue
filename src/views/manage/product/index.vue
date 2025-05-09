@@ -217,21 +217,23 @@
         <el-table-column label="库存数量" align="center" prop="stock" sortable>
           <template #default="scope">
             <div class="stock-container">
-              <span
-                :class="{
-                  'stock-warning': scope.row.stock <= scope.row.stockAlert,
-                }"
-              >
-                {{ scope.row.stock }}
-              </span>
-              <el-tooltip
-                v-if="scope.row.stock <= scope.row.stockAlert"
-                effect="dark"
-                :content="`库存已低于预警值(${scope.row.stockAlert})`"
-                placement="top"
-              >
-                <el-icon class="warning-icon"><Warning /></el-icon>
-              </el-tooltip>
+              <div class="stock-value-wrapper">
+                <span
+                  :class="{
+                    'stock-warning': scope.row.stock <= scope.row.stockAlert,
+                  }"
+                >
+                  {{ scope.row.stock }}
+                </span>
+                <el-tooltip
+                  v-if="scope.row.stock <= scope.row.stockAlert"
+                  effect="dark"
+                  :content="`库存已低于预警值(${scope.row.stockAlert})`"
+                  placement="top"
+                >
+                  <el-icon class="warning-icon"><Warning /></el-icon>
+                </el-tooltip>
+              </div>
             </div>
           </template>
         </el-table-column>
@@ -1255,27 +1257,28 @@ getTagList();
 }
 /**库存-预警数值提示 */
 .stock-container {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
   justify-content: center;
   width: 100%;
 }
 
-.stock-container span {
-  min-width: 40px; /* 根据实际数字长度调整 */
-  text-align: center;
+.stock-value-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-width: 40px; /* 设置最小宽度 */
 }
 
-.stock-container .stock-warning {
+.stock-warning {
   color: #f56c6c;
-  font-weight: bold;
 }
 
 .warning-icon {
-  color: #e6a23c;
-  font-size: 16px;
+  color: #f56c6c;
+  font-size: 14px;
   position: absolute;
-  margin-left: 50px; /* 调整图标位置，确保不影响数字居中 */
+  right: -20px; /* 将图标固定在数值右侧 */
 }
 
 .warning-icon:hover {
