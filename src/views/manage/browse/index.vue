@@ -29,21 +29,21 @@
         </el-form-item>
 
         <!-- 价格区间搜索 -->
-        <el-form-item label="价格区间" prop="priceRange">
+        <el-form-item label="价格区间" prop="queryParams.params">
           <el-input-number
-            v-model="queryParams.minPrice"
+            v-model="queryParams.params.minPrice"
             :min="0"
             :precision="2"
             placeholder="最低价"
-            style="width: 120px"
+            style="width: 150px"
           />
-          <span class="price-separator">-</span>
+          <span class="price-separator">—</span>
           <el-input-number
-            v-model="queryParams.maxPrice"
+            v-model="queryParams.params.maxPrice"
             :min="0"
             :precision="2"
             placeholder="最高价"
-            style="width: 120px"
+            style="width: 150px"
           />
         </el-form-item>
 
@@ -53,12 +53,13 @@
             v-model="queryParams.categoryId"
             placeholder="请选择分类"
             clearable
+            style="width: 180px"
           >
             <el-option
-              v-for="item in categoryOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
+              v-for="item in categoryList"
+              :key="item.categoryId"
+              :label="item.categoryName"
+              :value="item.categoryId"
             />
           </el-select>
         </el-form-item>
@@ -66,18 +67,19 @@
         <!-- 标签多选 -->
         <el-form-item label="产品标签" prop="tagIds">
           <el-select
-            v-model="queryParams.tagIds"
+            v-model="queryParams.params.tagIds"
             multiple
             collapse-tags
             collapse-tags-tooltip
+            :max-collapse-tags="3"
             placeholder="请选择标签"
             style="width: 240px"
           >
             <el-option
-              v-for="item in tagOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
+              v-for="item in tagList"
+              :key="item.tagId"
+              :label="item.tagName"
+              :value="item.tagId"
             />
           </el-select>
         </el-form-item>
@@ -100,11 +102,12 @@
         <span class="sort-label">排序方式：</span>
         <el-radio-group v-model="sortOption" @change="handleSortChange">
           <el-radio-button label="price">规格价格</el-radio-button>
-          <el-radio-button label="unitPrice">单位价格</el-radio-button>
-          <el-radio-button label="sales">销量</el-radio-button>
-          <el-radio-button label="createTime">上架时间</el-radio-button>
-          <el-radio-button label="rating">评分</el-radio-button>
+          <el-radio-button label="unit_price">单位价格</el-radio-button>
+          <el-radio-button label="total_sales">销量</el-radio-button>
+          <el-radio-button label="create_time">上架时间</el-radio-button>
+          <el-radio-button label="avg_rating">评分</el-radio-button>
         </el-radio-group>
+
         <el-switch
           v-model="sortDesc"
           active-text="降序"
@@ -256,6 +259,14 @@ import {
   updateProduct,
   delProduct,
 } from "@/api/manage/product";
+import { listCategory } from "@/api/manage/category";
+import { listTag } from "@/api/manage/tag";
+import { loadAllParams } from "@/api/page";
+
+// 分类数据库(包含所有的审核通过的分类实体)
+const categoryList = ref([]);
+// 标签数据库(包含所有标签实体)
+const tagList = ref([]);
 
 // 路由实例
 const router = useRouter();
@@ -267,52 +278,36 @@ const loading = ref(false);
 const productList = ref([]);
 const total = ref(0);
 
-// 查询参数
+// 主视图查询参数
 const queryParams = reactive({
+  // 产品名称(模糊)
   productName: "",
+  // 店铺名称(模糊)
   storeName: "",
-  minPrice: undefined,
-  maxPrice: undefined,
+  // 分类ID
   categoryId: undefined,
-  tagIds: [],
+
+  // 默认条件
   pageNum: 1,
   pageSize: 16,
-  orderBy: "createTime",
-  isDesc: true,
+
+  // 由于后端存在需求，一定要传递警示标识，暂时没有根绝此标识来筛选数据的需求，进行固定设置
+  params: {
+    isAlert: false,
+    minPrice: undefined,
+    maxPrice: undefined,
+    tagIds: [],
+    orderBy: "create_time",
+    isDesc: true,
+  },
 });
 
 // 排序选项
-const sortOption = ref("createTime");
+const sortOption = ref("create_time");
 const sortDesc = ref(true);
 
 // 标签类型循环使用
 const tagTypes = ["", "success", "warning", "info", "danger"];
-
-// 分类选项（模拟数据，实际应从API获取）
-const categoryOptions = ref([
-  { value: 1, label: "新鲜水果", icon: "🍎" },
-  { value: 2, label: "时令蔬菜", icon: "🥬" },
-  { value: 3, label: "肉禽蛋品", icon: "🥩" },
-  { value: 4, label: "海鲜水产", icon: "🦐" },
-  { value: 5, label: "乳品烘焙", icon: "🥖" },
-  { value: 6, label: "粮油调味", icon: "🌾" },
-  { value: 7, label: "休闲零食", icon: "🍪" },
-  { value: 8, label: "饮品冲调", icon: "🥤" },
-]);
-
-// 标签选项（模拟数据，实际应从API获取）
-const tagOptions = ref([
-  { value: 1, label: "有机认证", type: "success" },
-  { value: 2, label: "无农残", type: "success" },
-  { value: 3, label: "产地直供", type: "" },
-  { value: 4, label: "进口优选", type: "warning" },
-  { value: 5, label: "当季特选", type: "" },
-  { value: 6, label: "限时特惠", type: "danger" },
-  { value: 7, label: "热销爆款", type: "danger" },
-  { value: 8, label: "生鲜精选", type: "success" },
-  { value: 9, label: "品质保障", type: "info" },
-  { value: 10, label: "人气推荐", type: "warning" },
-]);
 
 // 查询表单引用
 const queryRef = ref(null);
@@ -356,22 +351,33 @@ const handleQuery = () => {
 
 // 重置查询
 const resetQuery = () => {
+  // 清空搜索表单
   queryRef.value?.resetFields();
-  queryParams.minPrice = undefined;
-  queryParams.maxPrice = undefined;
+  console.log(queryParams);
+  // 顶部搜索条件
+  queryParams.productName = "";
+  queryParams.storeName = "";
+  queryParams.categoryId = undefined;
+
+  queryParams.params.minPrice = undefined;
+  queryParams.params.maxPrice = undefined;
   queryParams.tagIds = [];
+
+  // 排序字段
+  queryParams.params.orderBy = "create_time";
+  // 排序方式
+  queryParams.params.isDesc = true;
+
   queryParams.pageNum = 1;
   sortOption.value = "createTime";
   sortDesc.value = true;
-  queryParams.orderBy = "createTime";
-  queryParams.isDesc = true;
   getProductList();
 };
 
 // 处理排序变化
 const handleSortChange = () => {
-  queryParams.orderBy = sortOption.value;
-  queryParams.isDesc = sortDesc.value;
+  queryParams.params.orderBy = sortOption.value;
+  queryParams.params.isDesc = sortDesc.value;
   getProductList();
 };
 
@@ -406,9 +412,37 @@ const handleViewStore = (storeId) => {
   });
 };
 
+/** 获取分类数据 */
+function getCategorylist() {
+  listCategory({
+    ...loadAllParams,
+    auditStatus: 1,
+  }).then((res) => {
+    if (res.code === 200) {
+      categoryList.value = res.rows;
+    } else {
+      ElMessage.error(res.message);
+    }
+  });
+}
+
+/** 获取标签数据 */
+function getTaglist() {
+  listTag({
+    ...loadAllParams,
+  }).then((res) => {
+    if (res.code === 200) {
+      tagList.value = res.rows;
+    } else {
+      ElMessage.error(res.message);
+    }
+  });
+}
+
 // 初始化
 getProductList();
-
+getCategorylist();
+getTaglist();
 </script>
 
 <style scoped>
