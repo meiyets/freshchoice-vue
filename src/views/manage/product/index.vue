@@ -936,8 +936,11 @@ function submitForm() {
         });
       } else {
         addProduct({
+        // 顺便再传入一个storeId
           product: {
             ...form.value,
+            storeId: store.value.storeId,
+            storeName: store.value.storeName,
           },
           tagIds: form.value.tagIds,
         }).then((response) => {
