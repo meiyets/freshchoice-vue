@@ -511,19 +511,17 @@
             </div>
 
             <!-- 新增产品标签 -->
-            <div
-              class="product-tags"
-              v-if="form.tagNames && form.tagNames.length"
-            >
+            <!-- 仅在包含标签关系时显示 -->
+            <div class="product-tags" v-if="form.tags && form.tags.length">
               <el-tag
-                v-for="(tag, index) in form.tagNames"
+                v-for="(tag, index) in form.tags"
                 :key="index"
                 type="info"
                 size="small"
                 effect="plain"
                 class="tag-item"
               >
-                {{ tag }}
+                {{ tag.tagName }}
               </el-tag>
             </div>
 
@@ -686,6 +684,7 @@ import {
 import { listCategory, addCategory } from "@/api/manage/category";
 import { listStore } from "@/api/manage/store";
 import { listTag } from "@/api/manage/tag";
+import { listFile } from "@/api/manage/file";
 
 // 查询参数
 import { loadAllParams } from "@/api/page";
@@ -849,7 +848,7 @@ function cancel() {
 }
 
 // 表单重置
-// 要包含整个Product实体
+// 要包含整个ProductVo实体
 function reset() {
   form.value = {
     productId: null,
@@ -875,6 +874,9 @@ function reset() {
     updateBy: null,
     stockAlert: 0,
     tagNames: [],
+    //标签实体
+    tags: [],
+    // 产品关联ids
     tagIds: [],
   };
   //只用得到这两个属性
@@ -914,11 +916,25 @@ function handleAdd() {
 }
 
 /** 修改按钮操作 */
+// 此处的row实际上已经包含了全部信息 Product实体+关联标签
 function handleUpdate(row) {
   reset();
-  const _productId = row.productId || ids.value;
-  getProduct(_productId).then((response) => {
-    form.value = response.data;
+  // 也自然拥有了id数据
+  form.value = row;
+  // 但为了回显标签数据，需要专门为tagIds赋值
+  form.value.tagIds = form.value.tags.map((tag) => tag.tagId);
+
+  // 搜索产品的副图
+  listFile({
+    bizType: "product_img",
+    bizId: form.value.productId,
+    isMainImage: 0,
+  }).then((response) => {
+    // 先从后端获取的文件列表拿到所有的url
+    const otherImages = response.rows.map((item) => item.storagePath);
+    // 合并所有字符串
+    form.value.mainImg = [form.value.mainImg, ...otherImages].join(",");
+
     open.value = true;
     title.value = "修改产品";
   });
@@ -928,15 +944,23 @@ function handleUpdate(row) {
 function submitForm() {
   proxy.$refs["productRef"].validate((valid) => {
     if (valid) {
+      // 修改表单数据
       if (form.value.productId != null) {
-        updateProduct(form.value).then((response) => {
+        updateProduct({
+          // 肯定是传多了，但是不管了
+          product: {
+            ...form.value,
+            storeName: store.value.storeName,
+          },
+          tagIds: form.value.tagIds,
+        }).then((response) => {
           proxy.$modal.msgSuccess("修改成功");
           open.value = false;
           getList();
         });
       } else {
         addProduct({
-        // 顺便再传入一个storeId
+          // 顺便再传入一个storeId
           product: {
             ...form.value,
             storeId: store.value.storeId,
@@ -1044,7 +1068,9 @@ function handleInfo(row) {
   // 清空表单
   reset();
   // 赋值，更改标题，打开对话框
+  // 此时表单具有了Product实体以及关联的标签数据
   form.value = row;
+  console.log(form.value);
   title.value = `${form.value.productName}`;
   infoOpen.value = true;
 }

@@ -1,7 +1,7 @@
 import request from '@/utils/request'
 
 // 查询产品-标签关系列表
-export function listTag(query) {
+export function listProductTag(query) {
   return request({
     url: "/manage/product-tag/list",
     method: "get",
@@ -10,7 +10,7 @@ export function listTag(query) {
 }
 
 // 查询产品-标签关系详细
-export function getTag(productTagId) {
+export function getProductTag(productTagId) {
   return request({
     url: "/manage/product-tag/" + productTagId,
     method: "get",
@@ -18,7 +18,7 @@ export function getTag(productTagId) {
 }
 
 // 新增产品-标签关系
-export function addTag(data) {
+export function addProductTag(data) {
   return request({
     url: "/manage/product-tag",
     method: "post",
@@ -27,7 +27,7 @@ export function addTag(data) {
 }
 
 // 修改产品-标签关系
-export function updateTag(data) {
+export function updateProductTag(data) {
   return request({
     url: "/manage/product-tag",
     method: "put",
@@ -36,7 +36,7 @@ export function updateTag(data) {
 }
 
 // 删除产品-标签关系
-export function delTag(productTagId) {
+export function delProductTag(productTagId) {
   return request({
     url: "/manage/product-tag/" + productTagId,
     method: "delete",
