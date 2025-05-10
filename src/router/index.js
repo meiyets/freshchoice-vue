@@ -33,8 +33,8 @@ import Layout from "@/layout";
 
 // 公共路由 - 所有用户都可以访问的路由配置
 export const constantRoutes = [
+  // 重定向路由 - 用于处理路由重定向
   {
-    // 重定向路由 - 用于处理路由重定向
     path: "/redirect",
     component: Layout,
     hidden: true,
@@ -122,6 +122,30 @@ export const constantRoutes = [
         component: () => import("@/views/manage/storefront/index.vue"),
         props: { storeId: null },
         meta: { title: "我的店铺", activeMenu: "/myStore/storefront" },
+      },
+    ],
+  },
+  // 产品浏览/详情页页路由
+  {
+    path: "/main/browse",
+    component: Layout,
+    meta: { title: "产品详情" },
+    hidden: true, // 在侧边栏中隐藏
+    children: [
+      //产品详情
+      {
+        path: ":productId", // 动态路由参数，用于不同店铺ID
+        name: "BrowseDetail",
+        component: () => import("@/views/manage/browse-detail/index.vue"),
+        props: true,
+        meta: { title: "产品详情", activeMenu: "/myStore/browse" },
+      },
+      //产品浏览页
+      {
+        path: "index",
+        name: "Browse",
+        component: () => import("@/views/manage/browse/index.vue"),
+        meta: { title: "产品浏览", activeMenu: "/myStore/browse" },
       },
     ],
   },
