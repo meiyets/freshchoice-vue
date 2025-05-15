@@ -205,10 +205,10 @@
             <div class="review-user">
               <el-avatar
                 :size="40"
-                :src="review.avatar || defaultAvatar"
+                :src="review.sysUser.avatar || defaultAvatar"
               ></el-avatar>
               <span class="user-name">{{
-                review.isAnonymous ? "匿名用户" : review.userName
+                review.isAnonymous ? "匿名用户" : review.sysUser.nickName
               }}</span>
             </div>
 
@@ -226,21 +226,6 @@
 
               <!-- 评价文字 -->
               <div class="review-text">{{ review.content }}</div>
-
-              <!-- 评价图片 -->
-              <div
-                class="review-images"
-                v-if="review.images && review.images.length"
-              >
-                <el-image
-                  v-for="(img, imgIndex) in review.images"
-                  :key="imgIndex"
-                  :src="img"
-                  :preview-src-list="review.images"
-                  fit="cover"
-                  class="review-image"
-                ></el-image>
-              </div>
             </div>
           </div>
         </div>
@@ -305,6 +290,7 @@ import { listProduct, getProduct } from "@/api/manage/product";
 import { listCategory, getCategory } from "@/api/manage/category";
 import { listFile } from "@/api/manage/file";
 import { listFavorite, addFavorite, delFavorite } from "@/api/manage/favorite";
+import { listReviewById } from "@/api/manage/review";
 
 // 获取全局代理对象和字典数据
 const { proxy } = getCurrentInstance();
@@ -401,7 +387,18 @@ const getProductDetail = async () => {
         });
 
         // 获取评价列表
-        getProductReviews();
+        listReviewById({
+          productId: productId.value,
+          pageNum: reviewParams.pageNum,
+          pageSize: reviewParams.pageSize,
+        }).then((res) => {
+          if (res.code === 200) {
+            reviews.value = res.rows;
+            reviewTotal.value = res.total;
+          } else {
+            ElMessage.error(res.msg || "获取评价列表失败");
+          }
+        });
       });
     } else {
       ElMessage.error("获取产品详情失败");
@@ -423,57 +420,6 @@ const getCategoryDetail = async (categoryId) => {
     }
   } catch (error) {
     console.error("获取分类详情失败", error);
-  }
-};
-
-// 获取产品评价列表
-const getProductReviews = async () => {
-  if (!productId.value) return;
-
-  reviewParams.productId = productId.value;
-
-  try {
-    // 这里应该调用实际的评价API
-    // 由于没有提供评价API，这里模拟一些评价数据
-    // 实际项目中应替换为真实API调用
-    setTimeout(() => {
-      // 模拟数据
-      reviews.value = [
-        {
-          userName: "用户A",
-          avatar: "",
-          rating: 5,
-          content: "非常新鲜，物流很快，包装也很好，下次还会购买！",
-          createTime: "2025-05-10 14:30:22",
-          isAnonymous: false,
-          images: [
-            "https://picsum.photos/300/300?random=1",
-            "https://picsum.photos/300/300?random=2",
-          ],
-        },
-        {
-          userName: "用户B",
-          avatar: "",
-          rating: 4,
-          content: "质量不错，但是发货有点慢。",
-          createTime: "2025-05-09 09:15:36",
-          isAnonymous: false,
-          images: [],
-        },
-        {
-          userName: "",
-          avatar: "",
-          rating: 3.5,
-          content: "一般般吧，没有想象中那么好。",
-          createTime: "2025-05-08 18:45:10",
-          isAnonymous: true,
-          images: ["https://picsum.photos/300/300?random=3"],
-        },
-      ];
-      reviewTotal.value = 3;
-    }, 500);
-  } catch (error) {
-    console.error("获取评价列表失败", error);
   }
 };
 

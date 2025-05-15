@@ -42,3 +42,12 @@ export function delReview(reviewId) {
     method: 'delete'
   })
 }
+
+// 根据产品id获取评价列表
+export function listReviewById(query) {
+  return request({
+    url: "/manage/review/list/product-id",
+    method: "get",
+    params: query,
+  });
+}
