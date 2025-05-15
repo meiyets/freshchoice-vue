@@ -396,9 +396,9 @@
           <el-col :span="12">
             <el-form-item label="计价单位" prop="priceUnit">
               <el-select v-model="form.priceUnit" placeholder="计价单位">
-                <el-option label="个" value="piece" />
-                <el-option label="盒" value="box" />
-                <el-option label="斤(散装称重)" value="jin" />
+                <el-option label="个" value="个" />
+                <el-option label="盒" value="盒" />
+                <el-option label="斤(散装称重)" value="斤(散装称重)" />
               </el-select>
             </el-form-item>
           </el-col>

@@ -135,19 +135,19 @@
           <div class="product-card" @click="handleViewDetail(item)">
             <!-- 产品图片 -->
             <div class="product-img">
-              <el-image
-                :src="item.mainImg"
-                fit="cover"
-                :preview-src-list="[item.mainImg]"
-                loading="lazy"
-              >
-                <!-- 产品图片报错 -->
-                <template #error>
-                  <div class="image-error">
-                    <el-icon><picture-filled /></el-icon>
-                  </div>
-                </template>
-              </el-image>
+                <el-image
+                  :src="item.mainImg"
+                  fit="cover"
+                  :preview-src-list="[item.mainImg]"
+                  loading="lazy"
+                >
+                  <!-- 产品图片报错 -->
+                  <template #error>
+                    <div class="image-error">
+                      <el-icon><picture-filled /></el-icon>
+                    </div>
+                  </template>
+                </el-image>
 
               <!-- 产品状态 -->
               <div class="product-status" v-if="item.productStatus !== 0">
@@ -398,8 +398,8 @@ const handleSizeChange = (val) => {
 const handleViewDetail = (item) => {
   // 跳转到产品详情页
   router.push({
-    path: `/product/detail/${item.productId}`,
-    query: { from: "browse" },
+    name: 'BrowseDetail',
+    params: { productId: item.productId },
   });
 };
 

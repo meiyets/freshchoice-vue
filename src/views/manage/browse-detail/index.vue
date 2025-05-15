@@ -61,13 +61,11 @@
               <span class="unit">/{{ productInfo.priceUnit }}</span>
             </div>
             <div class="unit-price" v-if="productInfo.unitPrice">
-              单价：¥{{ productInfo.unitPrice.toFixed(2) }}/{{
-                productInfo.specificationUnit
-              }}
+              单位价格：¥{{ productInfo.unitPrice.toFixed(2) }}/克
             </div>
           </div>
 
-          <!-- 规格信息 -->
+          <!-- 规格信息:规格值+规格单位 -->
           <div class="specification">
             规格：{{ productInfo.specificationValue
             }}{{ productInfo.specificationUnit }}
@@ -145,7 +143,7 @@
             <el-button
               :type="isFavorite ? 'danger' : 'default'"
               :icon="isFavorite ? 'Star' : 'StarFilled'"
-              @click="toggleFavorite"
+              @click="changeFavorite"
               :disabled="productInfo.productStatus !== 0"
             >
               {{ isFavorite ? "已收藏" : "收藏" }}
@@ -187,7 +185,6 @@
               ></div>
             </div>
           </el-tab-pane>
-
         </el-tabs>
       </div>
 
@@ -215,7 +212,6 @@
               }}</span>
             </div>
 
-            
             <!-- 评价内容 -->
             <div class="review-content">
               <!-- 评分 -->
@@ -283,12 +279,6 @@
             <el-button @click="copyShareUrl">复制</el-button>
           </template>
         </el-input>
-
-        <div class="share-qrcode" v-if="shareUrl">
-          <p>或使用二维码分享：</p>
-          <!-- 这里可以集成二维码生成库 -->
-          <div class="qrcode-placeholder">二维码展示区域</div>
-        </div>
       </div>
     </el-dialog>
   </div>
@@ -308,11 +298,13 @@ import {
   Star,
   StarFilled,
 } from "@element-plus/icons-vue";
+import useUserStore from "@/store/modules/user";
 
 // API导入
 import { listProduct, getProduct } from "@/api/manage/product";
 import { listCategory, getCategory } from "@/api/manage/category";
 import { listFile } from "@/api/manage/file";
+import { listFavorite, addFavorite, delFavorite } from "@/api/manage/favorite";
 
 // 获取全局代理对象和字典数据
 const { proxy } = getCurrentInstance();
@@ -322,19 +314,19 @@ const { product_status } = proxy.useDict("product_status");
 const route = useRoute();
 const router = useRouter();
 
+// 产品信息
+const productInfo = ref(null);
 // 产品ID
 const productId = computed(() => route.params.productId);
+// 用户存储对象
+const userStore = useUserStore();
+// 产品对应的分类信息
+const categoryInfo = ref(null);
+// 产品收藏ID
+const favoriteId = ref(null);
 
 // 加载状态
 const loading = ref(false);
-
-// 产品信息
-const productInfo = ref(null);
-
-// 产品对应的分类信息
-const categoryInfo = ref(null);
-
-
 
 // 标签类型循环使用
 const tagTypes = ["", "success", "warning", "info", "danger"];
@@ -386,10 +378,30 @@ const getProductDetail = async () => {
         if (productInfo.value.categoryId) {
           getCategoryDetail(productInfo.value.categoryId);
         }
+
+        // 检查是否已收藏
+        listFavorite({
+          userId: userStore.id,
+          productId: productInfo.value.productId,
+        }).then((res) => {
+          if (res.code === 200) {
+            if (res.rows && res.rows.length === 1) {
+              // 当且仅当返回一条数据时，设置收藏状态为true并保存favoriteId
+              isFavorite.value = true;
+              favoriteId.value = res.rows[0].favoriteId;
+            } else if (res.rows && res.rows.length > 1) {
+              ElMessage.error("收藏数据异常");
+            } else {
+              // 未收藏状态
+              isFavorite.value = false;
+            }
+          } else {
+            ElMessage.error(res.msg || "获取收藏状态失败");
+          }
+        });
+
         // 获取评价列表
         getProductReviews();
-        // 检查是否已收藏
-        checkFavoriteStatus();
       });
     } else {
       ElMessage.error("获取产品详情失败");
@@ -465,35 +477,57 @@ const getProductReviews = async () => {
   }
 };
 
-// 检查收藏状态
-const checkFavoriteStatus = async () => {
-  if (!productId.value) return;
-
-  try {
-    // 这里应该调用实际的收藏API检查状态
-    // 由于没有提供收藏API，这里模拟收藏状态
-    // 实际项目中应替换为真实API调用
-    setTimeout(() => {
-      isFavorite.value = Math.random() > 0.5; // 随机模拟收藏状态
-    }, 300);
-  } catch (error) {
-    console.error("检查收藏状态失败", error);
-  }
-};
-
 // 切换收藏状态
-const toggleFavorite = async () => {
+const changeFavorite = async () => {
   if (!productId.value) return;
 
-  try {
-    // 这里应该调用实际的收藏/取消收藏API
-    // 由于没有提供收藏API，这里只是切换状态
-    // 实际项目中应替换为真实API调用
-    isFavorite.value = !isFavorite.value;
-    ElMessage.success(isFavorite.value ? "收藏成功" : "已取消收藏");
-  } catch (error) {
-    console.error("操作收藏失败", error);
-    ElMessage.error("操作失败，请稍后重试");
+  // 假如当前为“未收藏”，那么会新增一条记录；否则删除这条记录
+  if (!isFavorite.value) {
+    // 新增收藏记录
+    console.log("新增收藏记录");
+
+    addFavorite({
+      userId: userStore.id,
+      productId: productId.value,
+    }).then((res) => {
+      if (res.code === 200) {
+        // 更新收藏标记和收藏记录id
+        ElMessage.success("收藏成功");
+        isFavorite.value = true;
+        // 从后端获取数据
+        listFavorite({
+          userId: userStore.id,
+          productId: productInfo.value.productId,
+        }).then((res) => {
+          if (res.code === 200) {
+            if (res.rows && res.rows.length === 1) {
+              favoriteId.value = res.rows[0].favoriteId;
+            } else if (res.rows && res.rows.length > 1) {
+              ElMessage.error("收藏数据异常");
+            } else {
+              // 未收藏状态
+              isFavorite.value = false;
+            }
+          } else {
+            ElMessage.error(res.msg || "获取收藏状态失败");
+          }
+        });
+      } else {
+        ElMessage.error(res.msg || "收藏失败");
+      }
+    });
+  } else {
+    // 删除收藏记录
+    console.log("删除收藏记录");
+
+    delFavorite([favoriteId.value]).then((res) => {
+      if (res.code === 200) {
+        ElMessage.success("取消收藏成功");
+        isFavorite.value = false;
+      } else {
+        ElMessage.error(res.msg || "取消收藏失败");
+      }
+    });
   }
 };
 
@@ -517,12 +551,12 @@ const copyShareUrl = () => {
     });
 };
 
-// 查看店铺
+// 查看店铺(点击店铺后跳转店铺详情页)
 const viewStore = (storeId) => {
   if (!storeId) return;
   router.push({
-    path: `/store/${storeId}`,
-    query: { from: "product-detail" },
+    name: "StoreDetail",
+    params: { storeId: storeId },
   });
 };
 
