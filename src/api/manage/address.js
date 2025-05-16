@@ -42,3 +42,19 @@ export function delAddress(addressId) {
     method: 'delete'
   })
 }
+
+// 根据用户id回显地址
+export function listAddressByUserId(userId) {
+  return request({
+    url: "/manage/address/list/" + userId,
+    method: "get",
+  });
+}
+
+// 根据用户id切换默认地址
+export function changeDefaultAddress(addressId) {
+  return request({
+    url: "/manage/address/default/" + addressId,
+    method: "put",
+  });
+}
