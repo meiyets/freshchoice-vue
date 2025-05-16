@@ -153,6 +153,28 @@
             <el-button type="primary" @click="shareProduct">
               <el-icon><share /></el-icon> 分享
             </el-button>
+
+            <!-- 加入购物车按钮 -->
+            <el-button
+              type="warning"
+              @click="handleAction('cart')"
+              :disabled="
+                productInfo.productStatus !== 0 || productInfo.stock <= 0
+              "
+            >
+              <el-icon><shopping-cart /></el-icon> 加入购物车
+            </el-button>
+
+            <!-- 立即购买按钮 -->
+            <el-button
+              type="danger"
+              @click="handleAction('buy')"
+              :disabled="
+                productInfo.productStatus !== 0 || productInfo.stock <= 0
+              "
+            >
+              <el-icon><shopping-bag /></el-icon> 立即购买
+            </el-button>
           </div>
         </div>
       </div>
@@ -191,7 +213,7 @@
       <!-- 底部区域：评价列表 -->
       <div class="bottom-section">
         <div class="reviews-header">
-          <h2>用户评价 ({{ productInfo.reviewCount }})</h2>
+          <h2>用户评价 ({{ reviewTotal }})</h2>
         </div>
 
         <!-- 评价列表 -->
@@ -266,12 +288,218 @@
         </el-input>
       </div>
     </el-dialog>
+
+    <!-- 订单/购物车确认对话框 -->
+    <el-dialog
+      v-model="showOrderDialog"
+      :title="dialogTitle"
+      width="600px"
+      destroy-on-close
+    >
+      <div class="order-dialog-content">
+        <!-- 地址信息区域 -->
+        <div class="address-section">
+          <!-- 头部信息 -->
+          <div class="section-title">
+            <span>收货地址</span>
+            <el-button
+              type="primary"
+              link
+              @click="showAddressForm = true"
+              v-if="!showAddressForm"
+            >
+              <el-icon><plus /></el-icon> 新增地址
+            </el-button>
+          </div>
+
+          <!-- 新增地址：地址表单 -->
+          <div v-if="showAddressForm" class="address-form-container">
+            <el-form
+              :model="addressForm"
+              :rules="addressRules"
+              ref="addressFormRef"
+              label-width="80px"
+            >
+              <el-form-item label="收货人" prop="consignee">
+                <el-input
+                  v-model="addressForm.consignee"
+                  placeholder="请输入收货人姓名"
+                />
+              </el-form-item>
+              <el-form-item label="联系电话" prop="contact">
+                <el-input
+                  v-model="addressForm.contact"
+                  placeholder="请输入联系电话"
+                />
+              </el-form-item>
+              <el-form-item label="性别">
+                <el-radio-group v-model="addressForm.gender">
+                  <el-radio :label="0">先生</el-radio>
+                  <el-radio :label="1">女士</el-radio>
+                </el-radio-group>
+              </el-form-item>
+              <el-form-item label="省份" prop="province">
+                <el-input
+                  v-model="addressForm.province"
+                  placeholder="请输入省份"
+                />
+              </el-form-item>
+              <el-form-item label="城市" prop="city">
+                <el-input v-model="addressForm.city" placeholder="请输入城市" />
+              </el-form-item>
+              <el-form-item label="区县" prop="district">
+                <el-input
+                  v-model="addressForm.district"
+                  placeholder="请输入区县"
+                />
+              </el-form-item>
+              <el-form-item label="详细地址" prop="detailAddress">
+                <el-input
+                  v-model="addressForm.detailAddress"
+                  type="textarea"
+                  placeholder="请输入详细地址"
+                />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="submitAddressForm"
+                  >保存</el-button
+                >
+                <el-button @click="cancelAddressForm">取消</el-button>
+              </el-form-item>
+            </el-form>
+          </div>
+
+          <!-- 地址列表 -->
+          <div v-else class="address-list" v-loading="addressLoading">
+            <!-- 没有查询到地址 -->
+            <el-empty
+              description="暂无收货地址"
+              v-if="addressList.length === 0"
+            >
+              <el-button type="primary" @click="showAddressForm = true"
+                >添加收货地址</el-button
+              >
+            </el-empty>
+
+            <!-- 地址信息展示 -->
+            <el-radio-group
+              v-model="selectedAddress"
+              v-else
+              class="address-radio-group"
+            >
+              <div
+                v-for="address in filteredAddressList"
+                :key="address.addressId"
+                class="address-item"
+              >
+                <div class="address-radio">
+                  <el-radio :label="address.addressId">
+                    <div class="address-content">
+                      <div class="address-header">
+                        <span class="consignee">{{ address.consignee }}</span>
+                        <span class="contact">{{ address.contact }}</span>
+                        <el-tag
+                          size="small"
+                          type="success"
+                          v-if="address.isDefault === 1"
+                          >默认</el-tag
+                        >
+                      </div>
+                      <div class="address-detail">
+                        {{ address.province }} {{ address.city }}
+                        {{ address.district }} {{ address.detailAddress }}
+                      </div>
+                    </div>
+                  </el-radio>
+                </div>
+                <div class="address-actions">
+                  <el-button type="primary" link @click="editAddress(address)">
+                    <el-icon><edit /></el-icon>
+                  </el-button>
+                  <el-button
+                    type="danger"
+                    link
+                    @click="removeAddress(address.addressId)"
+                    :disabled="address.isDefault === 1"
+                  >
+                    <el-icon><delete /></el-icon>
+                  </el-button>
+                  <el-button
+                    type="success"
+                    link
+                    @click="setDefault(address.addressId)"
+                    v-if="address.isDefault !== 1"
+                  >
+                    设为默认
+                  </el-button>
+                </div>
+              </div>
+
+              <!-- 展开/收起按钮 -->
+              <div class="expand-button">
+                <el-button type="primary" link @click="toggleAddressExpand">
+                  {{ isExpanded ? "收起地址" : "展开全部地址" }}
+                </el-button>
+              </div>
+            </el-radio-group>
+          </div>
+        </div>
+
+        <!-- 商品信息 -->
+        <div class="product-section">
+          <div class="section-title">商品信息</div>
+          <div class="product-info">
+            <el-image
+              :src="productInfo.mainImg"
+              fit="cover"
+              class="product-thumb"
+            ></el-image>
+            <div class="product-detail">
+              <div class="product-name">{{ productInfo.productName }}</div>
+              <div class="price">
+                ¥{{ productInfo.price }}/{{ productInfo.priceUnit }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 数量选择 -->
+        <div class="quantity-section">
+          <span>购买数量：</span>
+          <el-input-number
+            v-model="quantity"
+            :min="1"
+            :max="productInfo.stock"
+            controls-position="right"
+          />
+        </div>
+
+        <!-- 订单备注 -->
+        <div class="remark-section">
+          <el-input
+            v-model="orderRemark"
+            type="textarea"
+            :rows="2"
+            placeholder="请输入订单备注（可选）"
+          />
+        </div>
+      </div>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showOrderDialog = false">取消</el-button>
+          <el-button type="primary" @click="confirmOrder">
+            {{ confirmButtonText }}
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 // 导入所需的组件和API
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted, computed, getCurrentInstance } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
@@ -282,6 +510,13 @@ import {
   Share,
   Star,
   StarFilled,
+  ShoppingCart,
+  ShoppingBag,
+  Plus,
+  Minus,
+  Location,
+  Edit,
+  Delete,
 } from "@element-plus/icons-vue";
 import useUserStore from "@/store/modules/user";
 
@@ -291,6 +526,16 @@ import { listCategory, getCategory } from "@/api/manage/category";
 import { listFile } from "@/api/manage/file";
 import { listFavorite, addFavorite, delFavorite } from "@/api/manage/favorite";
 import { listReviewById } from "@/api/manage/review";
+import {
+  listAddressByUserId,
+  addAddress,
+  updateAddress,
+  changeDefaultAddress,
+  delAddress,
+} from "@/api/manage/address";
+import { addCartItem } from "@/api/manage/cart-item";
+import { addOrder } from "@/api/manage/order";
+import { addOrderDetail } from "@/api/manage/order-detail";
 
 // 获取全局代理对象和字典数据
 const { proxy } = getCurrentInstance();
@@ -302,17 +547,25 @@ const router = useRouter();
 
 // 产品信息
 const productInfo = ref(null);
-// 产品ID
-const productId = computed(() => route.params.productId);
-// 用户存储对象
-const userStore = useUserStore();
+// 地址数据
+const addressList = ref([]);
 // 产品对应的分类信息
 const categoryInfo = ref(null);
+// 用户存储对象
+const userStore = useUserStore();
+
+// 产品ID
+const productId = computed(() => route.params.productId);
 // 产品收藏ID
 const favoriteId = ref(null);
 
 // 加载状态
 const loading = ref(false);
+// 开关：购买对话框
+const showOrderDialog = ref(false);
+
+// 标记：是否显示地址表单
+const showAddressForm = ref(false);
 
 // 标签类型循环使用
 const tagTypes = ["", "success", "warning", "info", "danger"];
@@ -322,6 +575,13 @@ const productImages = ref([]);
 
 // 收藏状态
 const isFavorite = ref(false);
+
+// 新增响应式状态
+const isExpanded = ref(false);
+
+const dialogType = ref("buy");
+const quantity = ref(1);
+const orderRemark = ref("");
 
 // 评价列表
 const reviews = ref([]);
@@ -384,20 +644,20 @@ const getProductDetail = async () => {
           } else {
             ElMessage.error(res.msg || "获取收藏状态失败");
           }
-        });
 
-        // 获取评价列表
-        listReviewById({
-          productId: productId.value,
-          pageNum: reviewParams.pageNum,
-          pageSize: reviewParams.pageSize,
-        }).then((res) => {
-          if (res.code === 200) {
-            reviews.value = res.rows;
-            reviewTotal.value = res.total;
-          } else {
-            ElMessage.error(res.msg || "获取评价列表失败");
-          }
+          // 获取评价列表
+          listReviewById({
+            productId: productId.value,
+            pageNum: reviewParams.pageNum,
+            pageSize: reviewParams.pageSize,
+          }).then((res) => {
+            if (res.code === 200) {
+              reviews.value = res.rows;
+              reviewTotal.value = res.total;
+            } else {
+              ElMessage.error(res.msg || "获取评价列表失败");
+            }
+          });
         });
       });
     } else {
@@ -421,6 +681,20 @@ const getCategoryDetail = async (categoryId) => {
   } catch (error) {
     console.error("获取分类详情失败", error);
   }
+};
+
+// 计算属性过滤地址列表
+const filteredAddressList = computed(() => {
+  const defaultAddress = addressList.value.find((a) => a.isDefault === 1);
+  return isExpanded.value
+    ? addressList.value
+    : defaultAddress
+    ? [defaultAddress]
+    : [];
+});
+// 切换展开状态方法
+const toggleAddressExpand = () => {
+  isExpanded.value = !isExpanded.value;
 };
 
 // 切换收藏状态
@@ -522,6 +796,258 @@ const goBack = () => {
   router.back();
 };
 
+// 新增响应式数据
+
+const selectedAddress = ref(null);
+const addressLoading = ref(false);
+
+const addressForm = reactive({
+  consignee: "",
+  contact: "",
+  gender: 0,
+  province: "",
+  city: "",
+  district: "",
+  detailAddress: "",
+  userId: userStore.id,
+});
+const addressFormRef = ref(null);
+const addressRules = {
+  consignee: [{ required: true, message: "请输入收货人姓名", trigger: "blur" }],
+  contact: [{ required: true, message: "请输入联系电话", trigger: "blur" }],
+  province: [{ required: true, message: "请输入省份", trigger: "blur" }],
+  city: [{ required: true, message: "请输入城市", trigger: "blur" }],
+  district: [{ required: true, message: "请输入区县", trigger: "blur" }],
+  detailAddress: [
+    { required: true, message: "请输入详细地址", trigger: "blur" },
+  ],
+};
+
+// 计算属性
+const dialogTitle = computed(() =>
+  dialogType.value === "buy" ? "确认订单" : "加入购物车"
+);
+const confirmButtonText = computed(() =>
+  dialogType.value === "buy" ? "立即购买" : "加入购物车"
+);
+
+// 处理按钮操作
+const handleAction = (type) => {
+  // 设置对话框类型
+  dialogType.value = type;
+  // 打开对话框
+  showOrderDialog.value = true;
+  // 加载地址数据
+  loadAddressList();
+  // 默认数量
+  quantity.value = 1;
+  // 订单默认备注
+  orderRemark.value = "";
+};
+
+// 加载地址列表
+const loadAddressList = async () => {
+  try {
+    addressLoading.value = true;
+    console.log("userStore.id:", userStore.id);
+    const res = await listAddressByUserId(userStore.id);
+    if (res.code === 200) {
+      addressList.value = res.rows || [];
+      // 如果有默认地址，则选中默认地址
+      const defaultAddress = addressList.value.find(
+        (item) => item.isDefault === 1
+      );
+      selectedAddress.value = defaultAddress
+        ? defaultAddress.addressId
+        : addressList.value.length > 0
+        ? addressList.value[0].addressId
+        : null;
+    } else {
+      ElMessage.error(res.msg || "地址加载失败");
+    }
+  } catch (e) {
+    console.error("地址加载失败", e);
+    ElMessage.error("地址加载失败：" + (e.message || e));
+  } finally {
+    addressLoading.value = false;
+  }
+};
+
+// 提交地址表单
+const submitAddressForm = async () => {
+  if (!addressFormRef.value) return;
+
+  await addressFormRef.value.validate(async (valid) => {
+    if (valid) {
+      try {
+        const data = { ...addressForm };
+        let res;
+
+        if (data.addressId) {
+          // 编辑地址
+          res = await updateAddress(data);
+        } else {
+          // 新增地址
+          res = await addAddress(data);
+        }
+
+        if (res.code === 200) {
+          ElMessage.success("保存地址成功");
+          showAddressForm.value = false;
+          await loadAddressList();
+        } else {
+          ElMessage.error(res.msg || "保存地址失败");
+        }
+      } catch (e) {
+        console.error("保存地址失败", e);
+        ElMessage.error("保存地址失败：" + (e.message || e));
+      }
+    }
+  });
+};
+
+// 取消地址表单
+const cancelAddressForm = () => {
+  showAddressForm.value = false;
+  addressForm.consignee = "";
+  addressForm.contact = "";
+  addressForm.gender = 0;
+  addressForm.province = "";
+  addressForm.city = "";
+  addressForm.district = "";
+  addressForm.detailAddress = "";
+  delete addressForm.addressId;
+};
+
+// 编辑地址
+const editAddress = (address) => {
+  Object.assign(addressForm, address);
+  showAddressForm.value = true;
+};
+
+// 删除地址
+const removeAddress = async (addressId) => {
+  try {
+    await ElMessageBox.confirm("确定要删除该地址吗？", "提示", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+
+    const res = await delAddress(addressId);
+    if (res.code === 200) {
+      ElMessage.success("删除地址成功");
+      await loadAddressList();
+    } else {
+      ElMessage.error(res.msg || "删除地址失败");
+    }
+  } catch (e) {
+    if (e !== "cancel") {
+      console.error("删除地址失败", e);
+      ElMessage.error("删除地址失败：" + (e.message || e));
+    }
+  }
+};
+
+// 设置默认地址
+const setDefault = async (addressId) => {
+  try {
+    const res = await changeDefaultAddress(addressId);
+    if (res.code === 200) {
+      ElMessage.success("设置默认地址成功");
+      await loadAddressList();
+    } else {
+      ElMessage.error(res.msg || "设置默认地址失败");
+    }
+  } catch (e) {
+    console.error("设置默认地址失败", e);
+    ElMessage.error("设置默认地址失败：" + (e.message || e));
+  }
+};
+
+// 提交订单处理
+const confirmOrder = async () => {
+  if (!selectedAddress.value) {
+    return ElMessage.warning("请选择配送地址");
+  }
+
+  try {
+    const selectedAddressObj = addressList.value.find(
+      (a) => a.addressId === selectedAddress.value
+    );
+
+    if (dialogType.value === "buy") {
+      // 立即购买 - 创建订单
+      const orderData = {
+        userId: userStore.id,
+        storeId: productInfo.value.storeId,
+        addressId: selectedAddress.value,
+        totalAmount: productInfo.value.price * quantity.value,
+        provinceSnapshot: selectedAddressObj.province,
+        citySnapshot: selectedAddressObj.city,
+        districtSnapshot: selectedAddressObj.district,
+        detailAddressSnapshot: selectedAddressObj.detailAddress,
+        receiverSnapshot: selectedAddressObj.consignee,
+        contactSnapshot: selectedAddressObj.contact,
+        orderRemark: orderRemark.value,
+        params: {
+          parent: false,
+        },
+      };
+
+      const orderRes = await addOrder(orderData);
+      if (orderRes.code === 200) {
+        // 添加产品详情项
+        addOrderDetail({
+          orderId: orderRes.data,
+          productIdSnapshot: productInfo.value.productId,
+          productNameSnapshot: productInfo.value.productName,
+          quantity: quantity.value,
+          totalAmount: productInfo.value.price * quantity.value,
+          priceUnitSnapshot: productInfo.value.priceUnit,
+          productPriceSnapshot: productInfo.value.price,
+        }).then((res) => {
+          if (res.code === 200) {
+            // 订单创建成功，跳转到订单详情页或支付页
+            ElMessage.success("订单创建成功");
+            showOrderDialog.value = false;
+
+            router.push({
+              name: "OrderDetail",
+              params: { orderId: orderRes.data },
+            });
+          } else {
+            ElMessage.error(res.msg || "添加订单详情失败");
+          }
+        });
+      } else {
+        ElMessage.error(orderRes.msg || "创建订单失败");
+      }
+    } else {
+      // 加入购物车
+      const cartData = {
+        userId: userStore.id,
+        productId: productInfo.value.productId,
+        productName: productInfo.value.productName,
+        productMainUrl: productInfo.value.mainImg,
+        quantity: quantity.value,
+        productPrice: productInfo.value.price,
+      };
+
+      const cartRes = await addCartItem(cartData);
+      if (cartRes.code === 200) {
+        ElMessage.success("已加入购物车");
+        showOrderDialog.value = false;
+      } else {
+        ElMessage.error(cartRes.msg || "加入购物车失败");
+      }
+    }
+  } catch (e) {
+    console.error("操作失败", e);
+    ElMessage.error("操作失败：" + (e.message || e));
+  }
+};
+
 // 初始化
 onMounted(() => {
   getProductDetail();
@@ -533,6 +1059,134 @@ onMounted(() => {
   padding: 20px;
   background-color: #f5f7fa;
   min-height: calc(100vh - 120px);
+}
+
+/* 订单对话框样式 */
+.order-dialog-content {
+  padding: 10px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.address-section {
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ebeef5;
+  padding-bottom: 20px;
+}
+
+.address-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.address-radio-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.address-item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.address-item:hover {
+  background-color: #f5f7fa;
+}
+
+.address-radio {
+  flex: 1;
+}
+
+.address-content {
+  flex: 1;
+  min-width: 0;
+  margin-right: 15px;
+}
+
+.address-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.consignee {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.contact {
+  color: #606266;
+  margin-right: 10px;
+}
+
+.address-detail {
+  word-break: break-all;
+  white-space: normal;
+}
+
+.address-actions {
+  flex-shrink: 0;
+}
+
+.product-section {
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ebeef5;
+  padding-bottom: 20px;
+}
+
+.product-info {
+  display: flex;
+  align-items: center;
+}
+
+.product-thumb {
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  margin-right: 15px;
+}
+
+.product-detail {
+  flex: 1;
+}
+
+.product-name {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.price {
+  color: #f56c6c;
+  font-weight: bold;
+}
+
+.quantity-section {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.quantity-section span {
+  margin-right: 10px;
+}
+
+.remark-section {
+  margin-bottom: 10px;
 }
 
 .back-button {
@@ -925,5 +1579,10 @@ onMounted(() => {
     margin-right: 0;
     margin-bottom: 30px;
   }
+}
+/* 新增展开按钮样式 */
+.expand-button {
+  margin-top: 12px;
+  text-align: center;
 }
 </style>
