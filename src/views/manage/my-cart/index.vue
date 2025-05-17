@@ -924,6 +924,37 @@ async function handleCreateOrder() {
   dialogLoading.value = true;
   const orderCreationPromises = []; // 用于存储创建订单的Promise
 
+  // 父订单属性
+  let parentOrderId = null;
+  // 假如存在跨店铺，需要额外生成一张父订单
+  // 假如存在跨店铺，需要额外生成一张父订单
+  if (storeGroups.length > 1) {
+    // 使用正确的变量名
+    const parentOrderData = {
+      userId: userStore.id,
+      addressId: selectedAddressId.value,
+      params: {
+        parent: true,
+      },
+    };
+    try {
+      const parentOrderRes = await addOrder(parentOrderData);
+      if (parentOrderRes.code === 200) {
+        parentOrderId = parentOrderRes.data; // 正确赋值
+      } else {
+        ElMessage.error(parentOrderRes.msg || "创建父订单失败");
+        // 根据业务需求决定是否在这里 return 或继续创建子订单
+        dialogLoading.value = false;
+        return; // 如果父订单是必须的，则失败时返回
+      }
+    } catch (error) {
+      console.error("Error creating parent order:", error);
+      ElMessage.error("创建父订单时发生错误");
+      dialogLoading.value = false;
+      return; // 如果父订单是必须的，则错误时返回
+    }
+  }
+
   //遍历会产生订单的分组
   for (const group of storeGroups) {
     // 产生一个订单
@@ -938,6 +969,7 @@ async function handleCreateOrder() {
       detailAddressSnapshot: address.detailAddress,
       receiverSnapshot: address.consignee,
       contactSnapshot: address.contact,
+      parentOrderId: parentOrderId,
       params: {
         parent: false,
       },
@@ -950,7 +982,7 @@ async function handleCreateOrder() {
           const orderRes = await addOrder(orderData);
           if (orderRes.code === 200) {
             const detailCreationPromises = []; // 用于存储创建订单详情的Promise
-            
+
             // 为每个选中商品创建订单详情
             for (const item of group.items) {
               if (item.isSelected) {
