@@ -793,7 +793,7 @@ const handleReviewCurrentChange = (val) => {
 
 // 返回上一页
 const goBack = () => {
-  router.back();
+  router.push({ path: `/main/browse/index` });
 };
 
 // 新增响应式数据

@@ -542,6 +542,10 @@ watch(
   }
 );
 getStoreInfo();
+// 使用 defineOptions 显式设置组件名称，与路由 name 匹配
+defineOptions({
+  name: 'MyStore'
+});
 </script>
 
 <style scoped lang="scss">
