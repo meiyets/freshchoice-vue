@@ -42,3 +42,11 @@ export function delCartItem(cartItemId) {
     method: "delete",
   });
 }
+
+// 切换购物车项的选中状态
+export function changeCartItem(cartItemId) {
+  return request({
+    url: "/manage/cart-item/changeSelected/" + cartItemId ,
+    method: "put",
+  });
+}
