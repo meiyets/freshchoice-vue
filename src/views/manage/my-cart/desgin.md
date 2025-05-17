@@ -1,0 +1,209 @@
+Product实体
+### tb_product
+
+- ***产品表***，最小单元的商品 （tb_product）
+
+  - 主键约束 -- product_id
+
+  - 产品名称 -- product_name
+
+    - 比如苹果A、苹果B这样的区分
+
+  - 产品编号 -- product_code
+
+  - 产品图片 -- main_img
+
+    - 归纳到file表
+    - 冗余存储
+      - 同时还会关联查询轮播图
+
+  - 规格数值 -- specification_value
+
+    - 数值
+
+  - 规格数值单位-- specification_unit
+
+    - g、kg、jin
+    - 由工具类动态计算
+
+  - 计价单位 -- price_unit
+
+    - 对应规格，填盒/个/斤（散装称重）
+
+  - 产品价格 -- price
+
+    - 单位规格下的价格
+
+  - 单位价格 -- unit_price
+
+    - 动态计算，仅用于统计或排序
+
+  - 库存数量 -- stock
+
+    - 为0时应当自动触发产品状态改变
+
+  - 库存预警 -- stock_alert
+
+    - 达到时触发变化
+    - 针对所有产品
+
+  - 产品销量 -- total_sales
+
+    - 仅用于统计或排序
+    - 每次订单交易改动该字段
+
+  - 产品状态 -- product_status
+
+    - 记录是否上架等状态
+
+    - 0：上架、1：下架、2：售罄
+
+    - > [!NOTE]
+      >
+      > 随后扩
+
+  - - -
+
+  - 平均评分 -- avg_rating
+
+    - 后台计算
+
+  - 评价数量 -- review_count
+
+  - 店铺名称 -- store_name
+
+    - 冗余字段，在店铺表更新时需要同步更新
+
+  - 产品描述 -- product_desc
+
+    - > [!NOTE]
+      >
+      > 富文本待扩展
+
+  - ***店铺id***    -- store_id
+
+    - 逻辑外键
+    - 或许旨在构造一个轻量化的网站，每一个用户都能够投放自己的产品，以店铺作为约束
+
+  - ***分类id***  -- category_id
+
+    - 逻辑外键
+    - 创建时被选择，不为空
+购物车项实体
+### tb_cart_item
+
+- ***购物车项表***，存储用户的购物车中的每项记录（tb_cart_item）
+  - 主键约束 -- cart_item_id
+    - 唯一确定一条购物车记录
+    - 仅依靠 用户id + 产品id 会导致“多次添加同一产品”的混淆
+  - 产品名称 -- product_name
+    - 冗余字段
+  - 产品图片 -- product_main_url
+    - 冗余存储
+  - 产品数量 -- quantity
+    - 支持增减，动态修改
+  - 产品金额 -- product_price
+    - 产品单价快照
+  - 选中状态 -- is_selected
+    - 持久化存储选中状态
+    - 0：未选中，1：选中
+  - ***产品id***     -- product_id
+    - 外键约束
+  - ***用户id***     -- user_id
+    - 外键约束
+
+
+
+
+/manage/cart-item/list 返回数据格式
+{
+    "total": 2,
+    "rows": [
+        {
+            "product": {
+                "createBy": "customer1",
+                "createTime": "2025-05-09 12:36:38",
+                "updateBy": "customer1",
+                "updateTime": "2025-05-17 10:06:37",
+                "remark": null,
+                "productId": 18,
+                "productName": "测试产品",
+                "productCode": "P202505090013",
+                "productDesc": "最棒的产品",
+                "mainImg": "https://meiye-fresh-choice.oss-cn-beijing.aliyuncs.com/fresh-choice-images/2025/05/09/681dcc93d7068dbdece86175.jpg",
+                "specificationValue": 500.00,
+                "specificationUnit": "g",
+                "priceUnit": "斤",
+                "price": 500.00,
+                "unitPrice": 1.00,
+                "stock": 100.00,
+                "totalSales": 0.00,
+                "productStatus": 0,
+                "avgRating": 0.0,
+                "reviewCount": 0,
+                "storeName": ".",
+                "storeId": 39,
+                "categoryId": 2,
+                "stockAlert": 102
+            },
+            "cartItemId": 1,
+            "productName": "质朴的冷冻鸡肉",
+            "productMainUrl": "https://small-nudge.name/",
+            "quantity": 566706251,
+            "productPrice": 28.09,
+            "isSelected": 0,
+            "productId": 18,
+            "userId": 102,
+            "searchValue": null,
+            "createBy": null,
+            "createTime": "2025-05-16 18:18:23",
+            "updateBy": null,
+            "updateTime": "2025-05-16 18:18:23",
+            "remark": null
+        },
+        {
+            "product": {
+                "createBy": "customer1",
+                "createTime": "2025-05-09 12:36:38",
+                "updateBy": "customer1",
+                "updateTime": "2025-05-17 10:06:37",
+                "remark": null,
+                "productId": 18,
+                "productName": "测试产品",
+                "productCode": "P202505090013",
+                "productDesc": "最棒的产品",
+                "mainImg": "https://meiye-fresh-choice.oss-cn-beijing.aliyuncs.com/fresh-choice-images/2025/05/09/681dcc93d7068dbdece86175.jpg",
+                "specificationValue": 500.00,
+                "specificationUnit": "g",
+                "priceUnit": "斤",
+                "price": 500.00,
+                "unitPrice": 1.00,
+                "stock": 100.00,
+                "totalSales": 0.00,
+                "productStatus": 0,
+                "avgRating": 0.0,
+                "reviewCount": 0,
+                "storeName": ".",
+                "storeId": 39,
+                "categoryId": 2,
+                "stockAlert": 102
+            },
+            "cartItemId": 2,
+            "productName": "测试产品",
+            "productMainUrl": "https://meiye-fresh-choice.oss-cn-beijing.aliyuncs.com/fresh-choice-images/2025/05/09/681dcc93d7068dbdece86175.jpg",
+            "quantity": 2,
+            "productPrice": 500.00,
+            "isSelected": 0,
+            "productId": 18,
+            "userId": 102,
+            "searchValue": null,
+            "createBy": null,
+            "createTime": "2025-05-16 21:03:53",
+            "updateBy": null,
+            "updateTime": "2025-05-16 21:03:53",
+            "remark": null
+        }
+    ],
+    "code": 200,
+    "msg": "查询成功"
+}
