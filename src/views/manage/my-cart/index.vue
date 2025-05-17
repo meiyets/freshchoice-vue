@@ -896,6 +896,34 @@ function goToAddressManagement() {
   router.push({ path: "/manage/address" }); // 假设地址管理页面的路由是 /manage/address
 }
 
+
+/** 在订单创建后静默删除选中的商品 */
+async function deleteSelectedItemsAfterOrder() {
+  if (selectedItems.value.length === 0) {
+    // 没有选中商品，无需删除
+    return;
+  }
+
+  try {
+    const itemIdsToDelete = selectedItems.value.map(item => item.cartItemId);
+    // 直接将 ID 数组传递给 delCartItem
+    const response = await delCartItem(itemIdsToDelete);
+
+    if (response.code === 200) {
+      // 删除成功，不显示提示信息
+      console.log("Selected cart items deleted successfully after order creation.");
+    } else {
+      // 删除失败，只在控制台输出错误，不显示用户提示
+      console.error("Failed to delete cart items after order creation:", response.msg);
+    }
+  } catch (error) {
+    // 捕获 API 错误，只在控制台输出，不显示用户提示
+    console.error("Error deleting cart items after order creation:", error);
+  }
+  // 注意：getCartList() 会在 handleCreateOrder 函数的最后调用，用于刷新列表
+  // 所以这里不需要再次调用 getCartList()
+}
+
 /** 创建订单 */
 async function handleCreateOrder() {
   // 校验地址和订单合法
@@ -1026,7 +1054,14 @@ async function handleCreateOrder() {
   // 等待所有店铺的订单创建完成
   await Promise.all(orderCreationPromises);
 
+  // 删除购物车中对应产品 (调用新的静默删除函数)
+  deleteSelectedItemsAfterOrder();
+  // 刷新购物车列表
+  getCartList();
+
   dialogLoading.value = false;
+  // 关闭对话框
+  checkoutDialogVisible.value = false;
   ElMessage.success("所有选中商品订单已提交！"); // 所有订单都处理完毕后的总提示
 }
 
