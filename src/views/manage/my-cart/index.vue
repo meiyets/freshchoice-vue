@@ -4,6 +4,7 @@
     <div class="cart-header">
       <h2>我的购物车</h2>
       <div class="cart-actions" v-if="cartItemsByStore.length > 0">
+        <!-- 删除选中按钮 -->
         <el-button
           type="danger"
           @click="handleBatchDelete"
@@ -11,6 +12,8 @@
         >
           删除选中
         </el-button>
+
+        <!-- 清空购物车 -->
         <el-button type="warning" @click="handleClearCart"
           >清空购物车</el-button
         >
@@ -30,12 +33,17 @@
     <div v-else class="cart-content">
       <!-- 顶部操作栏：全选、总计、结算 -->
       <div class="cart-summary-bar">
+        <!-- 一个用于标识全选的复选框 -->
+        <!-- 单击将全部 -->
         <el-checkbox
           v-model="isAllSelected"
           @change="handleSelectAllItems"
           label="全选"
           size="large"
         />
+
+        <!-- 已选商品信息 -->
+        <!-- TODO:之后检查这里价格算的对不对 -->
         <div class="summary-info">
           <span>已选 {{ selectedItemsCount }} 件商品</span>
           <span class="total-price-display"
@@ -44,6 +52,8 @@
             ></span
           >
         </div>
+
+        <!-- 结算按钮 -->
         <el-button
           type="danger"
           @click="handleCheckout"
@@ -61,6 +71,7 @@
         :key="storeGroup.storeId"
         class="store-group"
       >
+        <!-- 店铺级别复选框 -->
         <div class="store-header">
           <el-checkbox
             v-model="storeGroup.selected"
@@ -72,6 +83,7 @@
           }}</span>
         </div>
 
+        <!-- 店铺下产品列表 -->
         <div class="cart-items-list">
           <el-card
             v-for="item in storeGroup.items"
@@ -218,16 +230,19 @@ const { product_status } = proxy.useDict("product_status");
 
 // 加载状态
 const loading = ref(true);
-// 原始购物车列表（后端返回）
+
+// 原始购物车列表: 购物车项数据 + 关联产品数据
 const rawCartItems = ref([]);
+// 购物车列表总条数
+const totalItems = ref(0);
+
 // 查询参数
 const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
   userId: userStore.id, // 从store获取用户ID
 });
-// 总条数
-const totalItems = ref(0);
+
 // 记录选中状态发生变化的商品ID
 const changedSelectedItemIds = ref(new Set());
 
@@ -236,15 +251,26 @@ const defaultProductImage =
   "https://via.placeholder.com/100x100.png?text=FreshChoice";
 
 // 计算属性：按店铺ID分组的购物车项
+// 根据店铺ID为分隔条件的对象数组
+// 每个元素包含:storeId、storeName、selected、items
 const cartItemsByStore = computed(() => {
+  // 构造一个分组对象，店铺ID为键，值为一个封装对象
   const grouped = {};
+
+  // 遍历所有的原始购物车项数据
   rawCartItems.value.forEach((item) => {
+    // 跳过没有产品数据的项
     if (!item.product) {
       console.warn("Cart item missing product data:", item);
-      return; // 跳过没有产品数据的项
+      return;
     }
+
+    // 获取店铺ID
     const storeId = item.product.storeId;
+
+    // 假如是第一次遇到该组，那么创建该组
     if (!grouped[storeId]) {
+      // 封装一个对象成员，元素包含:店铺ID、店铺名称、店铺选中状态、商品项数组
       grouped[storeId] = {
         storeId: storeId,
         storeName: item.product.storeName || "未知店铺",
@@ -252,6 +278,8 @@ const cartItemsByStore = computed(() => {
         items: [],
       };
     }
+
+    // 为对应组增加商品数据项
     grouped[storeId].items.push({
       ...item,
     });
@@ -263,6 +291,8 @@ const cartItemsByStore = computed(() => {
       storeGroup.items.length > 0 &&
       storeGroup.items.every((p) => p.isSelected);
   });
+
+  // 返回根据店铺ID为分隔条件的对象数组
   return Object.values(grouped);
 });
 
@@ -278,14 +308,17 @@ const selectedItemsCount = computed(() => selectedItems.value.length);
 
 // 计算属性：已选商品总金额
 const selectedTotalPrice = computed(() => {
+  // 累积计算：对所有选中商品的价格和数量相乘
   return selectedItems.value.reduce((sum, item) => {
     return sum + item.productPrice * item.quantity;
   }, 0);
 });
 
-// 计算属性：是否全选 (所有商品都被选中)
+// 计算属性：是否全选 (布尔值)
 const isAllSelected = computed({
+  // getter 方法：判断是否全选
   get() {
+    // 返回条件：购物车有商品且所有商品都被选中
     return (
       rawCartItems.value.length > 0 &&
       rawCartItems.value.every(
@@ -293,18 +326,19 @@ const isAllSelected = computed({
       )
     );
   },
+  // setter 方法：处理全选/全不选操作
   set(value) {
-    handleSelectAllItems(value);
+    handleSelectAllItems(value); // 调用全选处理方法
   },
 });
 
 /** 获取购物车列表 */
 async function getCartList() {
-  await syncSelectedItemsWithBackend(); // 在获取列表前同步状态
   loading.value = true;
   try {
     const response = await listCartItem(queryParams);
     if (response.code === 200) {
+      // 返回数据必定携带isSelected项(布尔值)
       rawCartItems.value = response.rows.map((item) => ({
         ...item,
         isSelected: item.isSelected === 1, // 确保isSelected是布尔值或1/0
@@ -326,71 +360,95 @@ async function getCartList() {
 
 /** 处理商品数量变更 */
 async function handleQuantityChange(item, currentValue, oldValue) {
+  // 检验商品状态
   if (item.product.productStatus !== 0) {
     ElMessage.warning("该商品已下架或无法购买");
     item.quantity = oldValue; // 恢复旧值
     return;
   }
+  // 数量限制
   if (currentValue > item.product.stock) {
     ElMessage.warning(`最多可购买 ${item.product.stock} 件`);
     item.quantity = item.product.stock;
     // 修正后可能需要重新计算总价等，或者由isSelected状态变化触发
   }
+
+  // 找到原始数据中对应的VO对象
+  const originalItem = rawCartItems.value.find(
+    (i) => i.cartItemId === item.cartItemId
+  );
+
+  if (!originalItem) {
+    ElMessage.error("更新数量时发生错误：找不到对应商品");
+    // 恢复视图上的旧值
+    item.quantity = oldValue;
+    return;
+  }
+
   // 调用API更新后端数量
   try {
     const response = await updateCartItem({
-      cartItemId: item.cartItemId,
-      quantity: item.quantity,
+      cartItemId: item.cartItemId, // 使用传递进来的item的ID
+      quantity: currentValue, // 使用修正后的currentValue
     });
     if (response.code !== 200) {
       ElMessage.error(response.msg || "更新数量失败");
-      item.quantity = oldValue; // 失败则恢复
+      // 失败则恢复原始数据中的数量
+      originalItem.quantity = oldValue;
+      // 同时恢复视图上的数量，因为API失败了
+      item.quantity = oldValue;
     } else {
-      // ElMessage.success('数量已更新'); // 可选：成功提示
-      // 重新获取列表或局部更新价格
+      // 更新成功后，更新原始数据中的数量
+      originalItem.quantity = currentValue;
+      // 视图上的数量因为v-model绑定到item.quantity，已经是最新的currentValue了
+      ElMessage.success("数量已更新"); // 可选：成功提示
     }
   } catch (error) {
     console.error("Error updating quantity:", error);
     ElMessage.error("更新数量时发生错误");
+    // 发生错误则恢复原始数据中的数量
+    originalItem.quantity = oldValue;
+    // 同时恢复视图上的数量
     item.quantity = oldValue;
   }
 }
 
 /** 处理单个商品选中状态变更 */
 async function handleItemSelectionChange(changedItem) {
-  // changedItem is from cartItemsByStore. Its isSelected is already updated by v-model.
+  // 找到对应VO
   const itemInRaw = rawCartItems.value.find(
     (i) => i.cartItemId === changedItem.cartItemId
   );
+
+  // 更新原始数据的选中状态
   if (itemInRaw) {
-    // Update the source of truth
     itemInRaw.isSelected = changedItem.isSelected;
 
-    // Update changedSelectedItemIds for backend sync
     if (changedSelectedItemIds.value.has(changedItem.cartItemId)) {
       changedSelectedItemIds.value.delete(changedItem.cartItemId);
     } else {
       changedSelectedItemIds.value.add(changedItem.cartItemId);
     }
   }
-  // The storeGroup.selected state will be re-evaluated by cartItemsByStore
-  // when rawCartItems changes. No need to manually set it here.
+
+
 }
 
 /** 处理店铺全选/全不选 */
 async function handleSelectStore(storeGroup) {
-  // storeGroup is from cartItemsByStore. Its selected is already updated by v-model.
+  // 获取当前最新选中状态
   const newSelectionState = storeGroup.selected;
 
-  // Update rawCartItems based on the new store selection state
-  // This will trigger cartItemsByStore to recompute.
+  // 更新原始数据，计算属性将同步计算
   storeGroup.items.forEach((itemFromStoreGroup) => {
+    // 找到原始数据中对应的VO对象
     const rawItem = rawCartItems.value.find(
       (ri) => ri.cartItemId === itemFromStoreGroup.cartItemId
     );
+    // 更新原始数据的选中状态
     if (rawItem && rawItem.isSelected !== newSelectionState) {
       rawItem.isSelected = newSelectionState;
-      // Update changedSelectedItemIds for backend sync
+      // 更新changedSelectedItemIds
       if (changedSelectedItemIds.value.has(rawItem.cartItemId)) {
         changedSelectedItemIds.value.delete(rawItem.cartItemId);
       } else {
@@ -398,18 +456,21 @@ async function handleSelectStore(storeGroup) {
       }
     }
   });
-  // cartItemsByStore will recompute, and its items' isSelected
-  // and the storeGroup's selected state will be updated accordingly.
+
 }
 
 /** 处理全选/全不选所有商品 */
 async function handleSelectAllItems(value) {
-  // value is the new state from isAllSelected setter
+  // value来自于计算属性设置值的传递
   const newSelectionState = value;
+
+  // 将所有产品的选中状态和isAllSelected同步
   rawCartItems.value.forEach((item) => {
     if (item.isSelected !== newSelectionState) {
       item.isSelected = newSelectionState;
-      // Update changedSelectedItemIds for backend sync
+
+      // 更新changedSelectedItemIds
+      // 假如已经改变了，那么现在没改变，应该删除；反之应当添加
       if (changedSelectedItemIds.value.has(item.cartItemId)) {
         changedSelectedItemIds.value.delete(item.cartItemId);
       } else {
@@ -417,8 +478,8 @@ async function handleSelectAllItems(value) {
       }
     }
   });
-  // cartItemsByStore will recompute, and each storeGroup.selected
-  // will be updated accordingly. No need to manually set it here.
+  // 根据店铺ID分组的购物车项也会重新计算
+
 }
 
 /** 删除单个商品 */
@@ -519,7 +580,7 @@ async function handleClearCart() {
           if (response.code === 200) {
             successCount++;
           } else {
-            // ElMessage.error(`清空商品ID ${id} 失败: ${response.msg}`);
+            ElMessage.error(`清空商品ID ${id} 失败: ${response.msg}`);
           }
         }
         if (successCount > 0) {
@@ -582,36 +643,36 @@ async function handleCheckout() {
 
 /** 去购物 */
 function goShopping() {
-  router.push({ path: "/manage/browse" }); // 假设商品浏览页路由
+  router.push({ path: "/main/browse/index" }); // 假设商品浏览页路由
 }
 
 /** 跳转到商品详情 */
 function goToProductDetail(productId) {
-  router.push({ path: `/manage/browse-detail/${productId}` });
+  router.push({ path: `/main/browse/${productId}` });
 }
 
 /** 跳转到店铺 */
 function goToStore(storeId) {
-  // router.push({ path: `/store/${storeId}` }); // 假设店铺页路由
-  ElMessage.info(`跳转到店铺ID: ${storeId} (功能待实现)`);
+  router.push({ path: `/myStore/storefront/${storeId}` }); // 假设店铺页路由
 }
 
 /** 同步选中状态到后端 */
+// 同步时机：删除行为、后端获取列表
 async function syncSelectedItemsWithBackend() {
   if (changedSelectedItemIds.value.size === 0) {
     return; // 没有需要同步的变更
   }
 
   loading.value = true;
+  // 转换为同步数组
   const itemsToSync = Array.from(changedSelectedItemIds.value);
   let successCount = 0;
 
   try {
     for (const cartItemId of itemsToSync) {
-      // 注意：changeCartItem API 可能需要知道商品当前的 isSelected 状态，
-      // 或者它是一个 toggle API。当前代码是 toggle API。
-      // 如果 API 需要具体状态，需要从 rawCartItems 中找到对应商品并传递其 isSelected 值。
+      // 找到对应的原始数据项
       const item = rawCartItems.value.find((i) => i.cartItemId === cartItemId);
+
       if (item) {
         // 确保商品仍然存在于购物车中
         const response = await changeCartItem(cartItemId); // 假设 changeCartItem 是一个 toggle 操作
@@ -621,12 +682,12 @@ async function syncSelectedItemsWithBackend() {
           ElMessage.error(
             `同步商品ID ${cartItemId} 选中状态失败: ${response.msg}`
           );
-          // 此处可以选择是否停止同步，或者继续同步其他项目
         }
       }
     }
+
     if (successCount > 0 && successCount === itemsToSync.length) {
-      // ElMessage.success('购物车选中状态已同步'); // 可选的成功提示
+      ElMessage.success("购物车选中状态已同步"); // 可选的成功提示
     } else if (successCount > 0) {
       ElMessage.warning("部分购物车商品选中状态同步成功");
     }
@@ -640,22 +701,18 @@ async function syncSelectedItemsWithBackend() {
   }
 }
 
-// 组件卸载前同步状态
+// 生命周期钩子：组件卸载前执行
 onBeforeUnmount(async () => {
+  // 在组件卸载前，同步当前页面上发生的选中状态变化
   await syncSelectedItemsWithBackend();
 });
 
-// 组件挂载时获取购物车数据
-onMounted(() => {
-  console.log("User ID:", userStore.id);
-  if (userStore.id) {
-    getCartList();
-  } else {
-    ElMessage.warning("请先登录再查看购物车");
-    loading.value = false;
-    // 可选择跳转到登录页
-    // router.push('/login');
-  }
+// 生命周期钩子：组件挂载后执行
+onMounted(async () => {
+  // 在组件挂载后，先尝试同步上次未完成的选中状态变化（如果存在）
+  await syncSelectedItemsWithBackend();
+  // 然后获取最新的购物车列表，其中应包含后端已保存的选中状态
+  getCartList();
 });
 </script>
 
