@@ -199,6 +199,149 @@
         />
       </div>
     </div>
+
+    <!-- 订单确认对话框 -->
+    <el-dialog
+      v-model="checkoutDialogVisible"
+      title="确认订单信息"
+      width="600px"
+      :close-on-click-modal="false"
+      @closed="handleCheckoutDialogClosed"
+    >
+      <div class="order-confirm-dialog-content" v-loading="dialogLoading">
+        <!-- 地址信息 -->
+        <div class="address-section">
+          <h3>收货地址</h3>
+          <div v-if="addressList.length > 0">
+            <el-radio-group
+              v-model="selectedAddressId"
+              class="address-radio-group"
+            >
+              <el-radio
+                v-for="address in addressList"
+                :key="address.addressId"
+                :label="address.addressId"
+                class="address-radio-item"
+              >
+                <div class="address-info-content">
+                  <div class="consignee-phone">
+                    {{ address.consignee }} {{ address.contact }}
+                  </div>
+                  <div class="detail-address">
+                    {{ address.province }}{{ address.city }}{{ address.district
+                    }}{{ address.detailAddress }}
+                  </div>
+                </div>
+              </el-radio>
+            </el-radio-group>
+          </div>
+
+          <!-- 为空时点击跳转到“我的地址簿” -->
+          <!-- TODO: -->
+          <div v-else class="empty-address-state">
+            <el-empty description="请添加收货地址"></el-empty>
+            <el-button type="primary" @click="goToAddressManagement">
+              去添加地址
+            </el-button>
+          </div>
+        </div>
+
+        <el-divider />
+
+        <!-- 商品总览 (小票形式) -->
+        <div class="items-overview-section">
+          <h3>商品清单</h3>
+          <div class="receipt-style-list">
+            <!-- 按店铺分组展示商品 -->
+            <div
+              v-for="storeGroup in cartItemsByStore.filter((group) =>
+                group.items.some((item) => item.isSelected)
+              )"
+              :key="storeGroup.storeId"
+              class="store-receipt-group"
+            >
+              <div class="store-name-header">
+                <el-icon><Shop /></el-icon>
+                <span>{{ storeGroup.storeName }}</span>
+              </div>
+              <!-- 收据标题 -->
+              <div class="receipt-header">
+                <span>商品名称</span>
+                <span>单价</span>
+                <span>数量</span>
+                <span>小计</span>
+              </div>
+
+              <!-- 店铺分组下产品数据 -->
+              <div
+                v-for="item in storeGroup.items.filter(
+                  (item) => item.isSelected
+                )"
+                :key="item.cartItemId"
+                class="receipt-item"
+              >
+                <span class="item-name">{{ item.product.productName }}</span>
+                <span class="item-price"
+                  >¥{{ item.productPrice.toFixed(2) }}</span
+                >
+                <span class="item-quantity">{{ item.quantity }}</span>
+                <span class="item-subtotal"
+                  >¥{{ (item.productPrice * item.quantity).toFixed(2) }}</span
+                >
+              </div>
+
+              <!-- 店铺小计 -->
+              <div class="store-subtotal">
+                <span>店铺小计</span>
+                <span class="total-price"
+                  >¥{{
+                    calculateStoreSubtotal(storeGroup.items).toFixed(2)
+                  }}</span
+                >
+              </div>
+              <!-- 分割线：不为最后一个时触发 -->
+              <el-divider
+                class="receipt-divider"
+                v-if="
+                  storeGroup !==
+                  cartItemsByStore
+                    .filter((group) =>
+                      group.items.some((item) => item.isSelected)
+                    )
+                    .slice(-1)[0]
+                "
+              />
+            </div>
+
+            <el-divider class="receipt-divider" />
+
+            <!-- 总计 -->
+            <div class="receipt-footer">
+              <span>订单总计</span>
+              <span class="total-price"
+                >¥{{ selectedTotalPrice.toFixed(2) }}</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <el-divider />
+      </div>
+
+      <!-- 确认区域 -->
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="checkoutDialogVisible = false">取消</el-button>
+          <el-button
+            type="primary"
+            @click="handleCreateOrder"
+            :disabled="!selectedAddressId || selectedItems.length === 0"
+          >
+            提交订单 (¥{{ selectedTotalPrice.toFixed(2) }})
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -223,6 +366,10 @@ import {
 } from "@/api/manage/cart-item";
 import { addFavorite } from "@/api/manage/favorite"; // 假设收藏API
 
+import { listAddressByUserId } from "@/api/manage/address";
+import { addOrder } from "@/api/manage/order";
+import { addOrderDetail } from "@/api/manage/order-detail";
+
 const { proxy } = getCurrentInstance();
 const router = useRouter();
 const userStore = useUserStore();
@@ -230,11 +377,38 @@ const { product_status } = proxy.useDict("product_status");
 
 // 加载状态
 const loading = ref(true);
+// 对话框加载状态
+const dialogLoading = ref(false);
 
 // 原始购物车列表: 购物车项数据 + 关联产品数据
 const rawCartItems = ref([]);
 // 购物车列表总条数
 const totalItems = ref(0);
+
+// 对话框相关状态
+const checkoutDialogVisible = ref(false);
+const addressList = ref([]); // 用户地址列表
+const selectedAddressId = ref(null); // 选中的地址ID
+
+// 新增计算店铺小计的方法
+const calculateStoreSubtotal = (items) => {
+  return items
+    .filter((item) => item.isSelected)
+    .reduce((sum, item) => {
+      return sum + item.productPrice * item.quantity;
+    }, 0);
+};
+
+// 计算属性：根据selectedAddressId返回对应的地址对象
+const selectedAddress = computed(() => {
+  if (!selectedAddressId.value) {
+    return null; // 如果没有选中地址ID，返回null
+  }
+  // 在addressList中查找匹配selectedAddressId的地址对象
+  return addressList.value.find(
+    (address) => address.addressId === selectedAddressId.value
+  );
+});
 
 // 查询参数
 const queryParams = reactive({
@@ -430,8 +604,6 @@ async function handleItemSelectionChange(changedItem) {
       changedSelectedItemIds.value.add(changedItem.cartItemId);
     }
   }
-
-
 }
 
 /** 处理店铺全选/全不选 */
@@ -456,7 +628,6 @@ async function handleSelectStore(storeGroup) {
       }
     }
   });
-
 }
 
 /** 处理全选/全不选所有商品 */
@@ -479,7 +650,6 @@ async function handleSelectAllItems(value) {
     }
   });
   // 根据店铺ID分组的购物车项也会重新计算
-
 }
 
 /** 删除单个商品 */
@@ -619,26 +789,15 @@ async function handleAddToFavorites(productId) {
 
 /** 去结算 */
 async function handleCheckout() {
-  // 改为异步函数
   await syncSelectedItemsWithBackend(); // 结算前同步状态
   if (selectedItems.value.length === 0) {
     ElMessage.warning("请至少选择一件商品进行结算");
     return;
   }
-  // 导航到订单确认页面，并传递选中的商品ID或整个商品信息
-  // router.push({ name: 'OrderConfirm', query: { items: JSON.stringify(selectedItems.value) } });
-  // 实际传递的数据根据订单确认页面的需要来定
-  ElMessage.info("正在跳转到结算页面...");
-  // 假设订单确认页路由为 'ConfirmOrder'
-  // router.push({ name: 'ConfirmOrder', state: { selectedCartItems: selectedItems.value } });
-  // 或者将选中项ID传过去，由订单页重新获取详情
-  const selectedCartItemIds = selectedItems.value.map(
-    (item) => item.cartItemId
-  );
-  router.push({
-    path: "/manage/order-confirm",
-    query: { cartItemIds: selectedCartItemIds.join(",") },
-  });
+  // 打开订单确认对话框
+  checkoutDialogVisible.value = true;
+  // 获取地址列表
+  getAddresses();
 }
 
 /** 去购物 */
@@ -701,10 +860,158 @@ async function syncSelectedItemsWithBackend() {
   }
 }
 
+/** 获取用户地址列表 */
+async function getAddresses() {
+  dialogLoading.value = true;
+  try {
+    const response = await listAddressByUserId(userStore.id);
+    if (response.code === 200) {
+      addressList.value = response.rows;
+      // 默认选中第一个地址或用户设置的默认地址
+      if (addressList.value.length > 0) {
+        const defaultAddress = addressList.value.find((addr) => addr.isDefault);
+        selectedAddressId.value = defaultAddress
+          ? defaultAddress.addressId
+          : addressList.value[0].addressId;
+      } else {
+        selectedAddressId.value = null;
+      }
+    } else {
+      ElMessage.error(response.msg || "获取地址失败");
+      addressList.value = [];
+      selectedAddressId.value = null;
+    }
+  } catch (error) {
+    console.error("Error fetching addresses:", error);
+    ElMessage.error("获取地址时发生错误");
+    addressList.value = [];
+    selectedAddressId.value = null;
+  }
+  dialogLoading.value = false;
+}
+
+/** 跳转到地址管理页面 */
+function goToAddressManagement() {
+  // TODO: 确认地址管理页面的路由路径
+  router.push({ path: "/manage/address" }); // 假设地址管理页面的路由是 /manage/address
+}
+
+/** 创建订单 */
+async function handleCreateOrder() {
+  // 校验地址和订单合法
+  if (!selectedAddressId.value) {
+    ElMessage.warning("请选择收货地址");
+    return;
+  }
+  if (selectedItems.value.length === 0) {
+    ElMessage.warning("没有选中商品，无法创建订单");
+    return;
+  }
+
+  // [一个店铺创建一个订单，订单所包含的每项商品都要用于创建订单详情项]
+
+  // 遍历所有的分组，得到包含选中商品的的店铺分组storeGroups
+  const storeGroups = cartItemsByStore.value.filter((group) =>
+    group.items.some((item) => item.isSelected)
+  );
+
+  // 使用 selectedAddress.value 获取选中地址对象
+  const address = selectedAddress.value;
+  if (!address) {
+    ElMessage.error("获取选中地址信息失败");
+  }
+
+  dialogLoading.value = true;
+  const orderCreationPromises = []; // 用于存储创建订单的Promise
+
+  //遍历会产生订单的分组
+  for (const group of storeGroups) {
+    // 产生一个订单
+    const orderData = {
+      userId: userStore.id,
+      storeId: group.storeId,
+      addressId: selectedAddressId.value,
+      totalAmount: calculateStoreSubtotal(group.items).toFixed(2),
+      provinceSnapshot: address.province,
+      citySnapshot: address.city,
+      districtSnapshot: address.district,
+      detailAddressSnapshot: address.detailAddress,
+      receiverSnapshot: address.consignee,
+      contactSnapshot: address.contact,
+      params: {
+        parent: false,
+      },
+    };
+
+    // 将订单创建的Promise添加到数组中
+    orderCreationPromises.push(
+      (async () => {
+        try {
+          const orderRes = await addOrder(orderData);
+          if (orderRes.code === 200) {
+            const detailCreationPromises = []; // 用于存储创建订单详情的Promise
+            
+            // 为每个选中商品创建订单详情
+            for (const item of group.items) {
+              if (item.isSelected) {
+                detailCreationPromises.push(
+                  addOrderDetail({
+                    orderId: orderRes.data,
+                    productIdSnapshot: item.productId,
+                    productNameSnapshot: item.productName,
+                    quantity: item.quantity,
+                    totalAmount: item.quantity * item.product.price,
+                    priceUnitSnapshot: item.product.priceUnit,
+                    productPriceSnapshot: item.product.price,
+                  }).catch((detailError) => {
+                    console.error("Error adding order detail:", detailError);
+                    ElMessage.error(
+                      `添加商品 "${item.product.productName}" 订单详情失败`
+                    );
+                    // 可以选择在这里处理单个详情失败的逻辑，例如标记订单为异常
+                  })
+                );
+              }
+            }
+            // 等待当前订单的所有订单详情创建完成
+            await Promise.all(detailCreationPromises);
+            ElMessage.success(`店铺 "${group.storeName}" 订单创建成功！`); // 可以按店铺提示成功
+          } else {
+            ElMessage.error(
+              orderRes.msg || `店铺 "${group.storeName}" 订单创建失败`
+            );
+            // 可以选择在这里处理单个订单失败的逻辑
+          }
+        } catch (orderError) {
+          console.error("Error creating order:", orderError);
+          ElMessage.error(`创建店铺 "${group.storeName}" 订单时发生错误`);
+          // 可以选择在这里处理单个订单创建错误的逻辑
+        }
+      })() // 立即执行 async 函数并返回 Promise
+    );
+  }
+
+  // 等待所有店铺的订单创建完成
+  await Promise.all(orderCreationPromises);
+
+  dialogLoading.value = false;
+  ElMessage.success("所有选中商品订单已提交！"); // 所有订单都处理完毕后的总提示
+}
+
+/** 对话框关闭时的回调 */
+function handleCheckoutDialogClosed() {
+  // 重置对话框相关状态
+  selectedAddressId.value = null;
+  addressList.value = [];
+  dialogLoading.value = false;
+}
+
 // 生命周期钩子：组件卸载前执行
 onBeforeUnmount(async () => {
   // 在组件卸载前，同步当前页面上发生的选中状态变化
   await syncSelectedItemsWithBackend();
+  // 移除 beforeunload 监听器
+  window.removeEventListener("beforeunload", handleBeforeUnload);
 });
 
 // 生命周期钩子：组件挂载后执行
@@ -713,246 +1020,483 @@ onMounted(async () => {
   await syncSelectedItemsWithBackend();
   // 然后获取最新的购物车列表，其中应包含后端已保存的选中状态
   getCartList();
+  // 添加 beforeunload 监听器
+  window.addEventListener("beforeunload", handleBeforeUnload);
 });
+
+// 处理页面卸载或刷新前的同步
+async function handleBeforeUnload(event) {
+  // 只有当有未同步的选中状态变化时才进行同步
+  if (changedSelectedItemIds.value.size > 0) {
+    // 阻止默认的页面卸载行为，以便有时间发送同步请求
+    // event.preventDefault(); // 注意：现代浏览器可能不支持阻止卸载
+    // event.returnValue = ''; // 兼容旧版浏览器
+
+    // 尝试发送同步请求，但不等待结果，因为页面即将卸载
+    // 使用 navigator.sendBeacon 或 keepalive fetch 可以在页面卸载时发送请求
+    // 这里为了简单，直接调用同步函数，但不能保证请求一定成功
+    console.log("页面卸载前同步选中状态...");
+    await syncSelectedItemsWithBackend();
+  }
+}
 </script>
 
 <style lang="scss" scoped>
 .my-cart-container {
   padding: 20px;
   background-color: #f5f5f5;
-  min-height: calc(100vh - 50px); // 假设顶部导航栏高度50px
-}
+  min-height: calc(100vh - 84px); // 减去头部高度
 
-.cart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #e0e0e0;
-
-  h2 {
-    margin: 0;
-    font-size: 24px;
-    color: #333;
-  }
-
-  .cart-actions .el-button {
-    margin-left: 10px;
-  }
-}
-
-.cart-summary-bar {
-  display: flex;
-  align-items: center;
-  padding: 15px 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-
-  .el-checkbox {
-    margin-right: auto; // 将全选推到最左边
-  }
-
-  .summary-info {
+  .cart-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 20px;
-    margin-right: 20px;
-    font-size: 14px;
-    color: #555;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
 
-    .total-price-display {
-      font-size: 16px;
-      .price-value {
-        font-weight: bold;
-        font-size: 20px;
-        color: #ff4d4f;
+    h2 {
+      margin: 0;
+      font-size: 24px;
+      color: #333;
+    }
+  }
+
+  .cart-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+
+    .cart-summary-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 0;
+      border-bottom: 1px solid #eee;
+      margin-bottom: 20px;
+
+      .summary-info {
+        flex-grow: 1;
+        text-align: right;
+        margin-right: 20px;
+        font-size: 16px;
+        color: #666;
+
+        .total-price-display {
+          margin-left: 20px;
+          font-size: 18px;
+          color: #333;
+
+          .price-value {
+            color: #f56c6c;
+            font-weight: bold;
+          }
+        }
+      }
+
+      .checkout-button {
+        padding: 0 30px;
       }
     }
-  }
 
-  .checkout-button {
-    font-size: 16px;
-  }
-}
+    .store-group {
+      margin-bottom: 30px;
+      border: 1px solid #ebeef5;
+      border-radius: 4px;
+      overflow: hidden;
 
-.store-group {
-  background-color: #fff;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
+      .store-header {
+        display: flex;
+        align-items: center;
+        padding: 10px 15px;
+        background-color: #f9fafc;
+        border-bottom: 1px solid #ebeef5;
+        font-weight: bold;
+        color: #333;
 
-.store-header {
-  display: flex;
-  align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #f0f0f0;
+        .el-checkbox {
+          margin-right: 10px;
+        }
 
-  .el-checkbox {
-    margin-right: 10px;
-  }
+        .el-icon {
+          margin-right: 5px;
+        }
 
-  .el-icon {
-    margin-right: 8px;
-    font-size: 18px;
-    color: #555;
-  }
+        .store-name {
+          cursor: pointer;
+          &:hover {
+            color: #409eff;
+          }
+        }
+      }
 
-  .store-name {
-    font-size: 16px;
-    font-weight: 500;
-    color: #333;
-    cursor: pointer;
-    &:hover {
-      color: #409eff;
+      .cart-items-list {
+        .cart-item-card {
+          margin: 0;
+          border: none;
+          border-bottom: 1px solid #ebeef5;
+          &:last-child {
+            border-bottom: none;
+          }
+
+          .el-card__body {
+            padding: 15px;
+          }
+
+          .cart-item {
+            display: flex;
+            align-items: center;
+
+            .item-checkbox {
+              margin-right: 15px;
+            }
+
+            .product-image {
+              width: 80px;
+              height: 80px;
+              border-radius: 4px;
+              margin-right: 15px;
+              flex-shrink: 0;
+              cursor: pointer;
+
+              .image-slot {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+                height: 100%;
+                background: var(--el-fill-color-light);
+                color: var(--el-text-color-secondary);
+                font-size: 30px;
+              }
+            }
+
+            .product-info {
+              flex-grow: 1;
+              margin-right: 15px;
+
+              .product-name {
+                font-size: 16px;
+                color: #333;
+                margin-bottom: 5px;
+                cursor: pointer;
+                &:hover {
+                  color: #409eff;
+                }
+              }
+
+              .product-specs {
+                font-size: 13px;
+                color: #999;
+                margin-bottom: 5px;
+              }
+              .product-status {
+                font-size: 13px;
+                color: #999;
+              }
+            }
+
+            .unit-price {
+              width: 80px;
+              text-align: center;
+              font-size: 15px;
+              color: #f56c6c;
+              font-weight: bold;
+              flex-shrink: 0;
+            }
+
+            .quantity-control {
+              width: 120px;
+              text-align: center;
+              flex-shrink: 0;
+            }
+
+            .item-subtotal {
+              width: 100px;
+              text-align: center;
+              font-size: 16px;
+              color: #f56c6c;
+              font-weight: bold;
+              flex-shrink: 0;
+            }
+
+            .item-actions {
+              width: 100px;
+              text-align: center;
+              flex-shrink: 0;
+
+              .el-button {
+                margin: 0 5px;
+              }
+            }
+          }
+        }
+      }
     }
-  }
-}
 
-.cart-items-list {
-  padding: 0 20px 10px; // 给最后一个卡片底部留些空间
-}
-
-.cart-item-card {
-  margin-top: 15px;
-  border: none; // 使用卡片自带的边框和阴影
-  &:first-child {
-    margin-top: 0;
-  }
-  .el-card__body {
-    padding: 15px !important; // 覆盖element-plus默认padding
-  }
-}
-
-.cart-item {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-
-  .item-checkbox {
-    flex-shrink: 0;
-  }
-
-  .product-image {
-    width: 80px;
-    height: 80px;
-    border-radius: 4px;
-    cursor: pointer;
-    flex-shrink: 0;
-    border: 1px solid #eee;
-    .image-slot {
+    .pagination-container {
+      margin-top: 20px;
       display: flex;
       justify-content: center;
-      align-items: center;
-      width: 100%;
-      height: 100%;
-      background: #f5f7fa;
-      color: #c0c4cc;
-      font-size: 24px;
     }
   }
+}
 
-  .product-info {
-    flex-grow: 1;
-    min-width: 200px; // 避免被压缩过小
-    .product-name {
-      font-size: 14px;
-      color: #333;
-      font-weight: 500;
-      cursor: pointer;
-      margin-bottom: 5px;
+// 对话框样式
+.order-confirm-dialog-content {
+  padding: 0 20px; // 调整对话框内容整体内边距
+
+  h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 18px;
+    color: #333;
+  }
+
+  .address-section {
+    padding: 0; // 移除address-section自身的内边距，由内部item控制
+
+    .address-radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px; // 增加地址卡片之间的垂直间距
+    }
+
+    .address-radio-item {
+      padding: 15px 20px; // 增加地址卡片内边距
+      margin: 0; // 移除margin，使用gap控制间距
+      border-radius: 8px;
+      border: 1px solid #ebeef5;
+      background: #f8f9fa;
+      transition: all 0.2s ease-in-out; // 添加平滑过渡效果
+      cursor: pointer; // 添加手型光标
+      width: 100%; // 使地址卡片宽度一致，占满父容器
+      box-sizing: border-box; // 边框和内边距包含在宽度内
+      min-height: 70px; // 设置最小高度，确保基本信息能显示
+
       &:hover {
-        color: #409eff;
+        border-color: #409eff;
+        box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+      }
+
+      // 调整el-radio内部元素的对齐和间距
+      :deep(.el-radio__input) {
+        vertical-align: top; // 使radio按钮与内容顶部对齐
+        margin-top: 4px; // 微调位置
+      }
+
+      :deep(.el-radio__label) {
+        padding-left: 15px; // 增加radio按钮和内容之间的间距
+        display: flex; // 使用flex布局控制label内容
+        align-items: flex-start; // 内容顶部对齐
+        white-space: normal; // 允许文本换行
+        flex-grow: 1; // 允许内容区域填充剩余空间
+        overflow: hidden; // 防止内容溢出label区域
+      }
+
+      .address-info-content {
+        display: flex;
+        flex-direction: column;
+        gap: 6px; // 调整信息行之间的垂直间距
+        flex-grow: 1; // 允许内容区域填充剩余空间
+        overflow: hidden; // 防止内容溢出info-content区域
+
+        .consignee-phone {
+          font-size: 15px;
+          font-weight: 500;
+          color: #303133;
+          display: flex;
+          align-items: center; // 垂直居中对齐
+          gap: 10px; // 调整姓名和电话之间的间距
+          word-break: break-word; // 允许长文本换行
+          overflow: hidden; // 防止内容溢出
+
+          &::before {
+            content: "👤"; // 添加人物图标
+            font-size: 14px;
+            color: #606266; // 图标颜色
+            flex-shrink: 0; // 防止图标被压缩
+          }
+        }
+        .detail-address {
+          font-size: 13px;
+          color: #606266;
+          line-height: 1.6; // 调整行高
+          padding-left: 24px; // 为图标留出空间
+          position: relative;
+          word-break: break-word; // 允许长文本换行
+          overflow: hidden; // 防止内容溢出
+
+          &::before {
+            content: "📍"; // 添加定位图标
+            position: absolute;
+            left: 0;
+            top: 1px; // 微调位置
+            font-size: 14px;
+            color: #606266; // 图标颜色
+          }
+        }
       }
     }
-    .product-specs {
-      font-size: 12px;
-      color: #999;
-      margin-bottom: 5px;
-    }
-    .product-status {
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-    }
-  }
 
-  .unit-price,
-  .item-subtotal {
-    width: 100px;
-    text-align: center;
-    font-size: 14px;
-    color: #333;
-    flex-shrink: 0;
-  }
-  .item-subtotal {
-    font-weight: bold;
-    color: #ff4d4f;
-  }
-
-  .quantity-control {
-    width: 120px;
-    flex-shrink: 0;
-    .el-input-number {
-      width: 100%;
+    .empty-address-state {
+      text-align: center;
+      .el-empty {
+        padding: 20px 0;
+      }
+      .el-button {
+        margin-top: 15px;
+        width: 100%;
+        padding: 12px 0;
+      }
     }
   }
 
-  .item-actions {
-    width: 120px;
-    text-align: right;
-    flex-shrink: 0;
-    .el-button {
-      padding: 5px;
-      margin-left: 5px;
+  .items-overview-section {
+    .receipt-style-list {
+      border: 1px dashed #ccc;
+      padding: 15px;
+      font-family: monospace;
+      font-size: 14px;
+      background-color: #fff;
+
+      .store-receipt-group {
+        margin-bottom: 20px; // 增加店铺组之间的间距
+
+        .store-name-header {
+          font-weight: bold;
+          margin-bottom: 10px;
+          font-size: 15px;
+          color: #333;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+        }
+      }
+
+      .receipt-header,
+      .receipt-item,
+      .store-subtotal,
+      .receipt-footer {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px 0;
+      }
+
+      .receipt-header {
+        font-weight: bold;
+        border-bottom: 1px dashed #ccc;
+        margin-bottom: 8px;
+        color: #333;
+
+        span {
+          flex: 1; // 允许所有列伸缩
+          text-align: left;
+          // 调整flex-basis和max-width来控制列宽，确保对齐但不强制固定
+          &:nth-child(1) {
+            // 商品名称
+            flex: 2; // 给予更多空间
+            max-width: 50%; // 限制最大宽度，避免过长
+          }
+          &:nth-child(2) {
+            // 单价
+            flex: 1;
+            text-align: right;
+            max-width: 20%;
+          }
+          &:nth-child(3) {
+            // 数量
+            flex: 0 0 15%; // 固定数量列宽度，确保对齐
+            text-align: right;
+          }
+          &:nth-child(4) {
+            // 小计
+            flex: 1;
+            text-align: right;
+            max-width: 25%;
+          }
+        }
+      }
+
+      .receipt-item {
+        border-bottom: 1px dashed #eee;
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .item-name {
+          flex: 2;
+          text-align: left;
+          word-break: break-word;
+          max-width: 50%;
+        }
+        .item-price {
+          flex: 1;
+          text-align: right;
+          color: #f56c6c;
+          max-width: 20%;
+        }
+        .item-quantity {
+          flex: 0 0 15%;
+          text-align: right;
+        } // 固定数量列宽度
+        .item-subtotal {
+          flex: 1;
+          text-align: right;
+          font-weight: bold;
+          color: #f56c6c;
+          max-width: 25%;
+        }
+      }
+
+      .store-subtotal {
+        font-weight: bold;
+        margin-top: 10px;
+        border-top: 1px dashed #ccc;
+        padding-top: 8px;
+        color: #333;
+        justify-content: flex-end; // 右对齐
+        gap: 20px; // 调整文字和金额间距
+
+        .total-price {
+          color: #f56c6c;
+        }
+      }
+
+      .receipt-divider {
+        border-style: dashed;
+        margin: 15px 0;
+      }
+
+      .receipt-footer {
+        display: flex;
+        justify-content: space-between;
+        font-weight: bold;
+        font-size: 16px;
+        padding-top: 8px;
+
+        .total-price {
+          color: #f56c6c;
+        }
+      }
+    }
+  }
+
+  .other-info-section {
+    // TODO: 添加支付方式选择等
+    padding: 0 15px; // 添加内边距
+    h3 {
+      margin-bottom: 15px;
+    }
+    p {
+      font-size: 14px;
+      color: #606266;
     }
   }
 }
 
-.pagination-container {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-  padding: 15px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-// 响应式调整
-@media (max-width: 768px) {
-  .cart-item {
-    flex-wrap: wrap; // 在小屏幕上允许换行
-    .product-info {
-      width: 100%;
-      order: 1; // 将信息放在图片下方
-      margin-top: 10px;
-    }
-    .unit-price,
-    .quantity-control,
-    .item-subtotal,
-    .item-actions {
-      width: 50%; // 两列布局
-      text-align: left;
-      margin-top: 10px;
-    }
-    .item-actions {
-      text-align: right;
-    }
-  }
-  .cart-summary-bar {
-    flex-direction: column;
-    align-items: stretch;
-    .summary-info {
-      margin: 10px 0;
-      justify-content: space-between;
-    }
-    .checkout-button {
-      width: 100%;
-    }
-  }
+.dialog-footer {
+  text-align: right;
 }
 </style>
