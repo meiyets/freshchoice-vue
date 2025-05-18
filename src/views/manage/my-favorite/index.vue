@@ -341,8 +341,8 @@ function resetQuery() {
   proxy.resetForm("queryRef");
   queryParams.productName = undefined;
   queryParams.storeName = undefined;
-  queryParams.orderBy = "createTime";
-  queryParams.isAsc = "desc";
+  queryParams.orderBy = "create_time";
+  queryParams.isDesc = "true";
   handleQuery();
 }
 
@@ -465,9 +465,17 @@ onMounted(() => {
   top: 10px;
   left: 10px;
   z-index: 10;
-  background-color: rgba(255, 255, 255, 0.8);
+  /* 进一步调整样式，使其更显眼 */
+  background-color: #ffffff; /* 使用完全不透明的白色背景 */
+  border: 1px solid #c0c4cc; /* 边框颜色可以稍微深一点 */
   border-radius: 4px;
-  padding: 2px;
+  padding: 5px; /* 增加内边距 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; /* 增加宽度 */
+  height: 28px; /* 增加高度 */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 添加阴影 */
 }
 
 .favorite-image {
@@ -595,9 +603,6 @@ onMounted(() => {
 }
 
 @media (max-width: 576px) {
-  .favorite-card-col {
-    /* 在小屏幕上，可以考虑每行只显示一个或两个 */
-  }
   .favorite-image {
     height: 160px;
   }
