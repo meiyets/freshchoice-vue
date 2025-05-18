@@ -77,16 +77,16 @@
                 <span>订单编号: {{ order.order.orderCode }}</span>
                 <span>店铺: {{ order.store.storeName }}</span>
                 <span>总额: ¥{{ order.order.totalAmount.toFixed(2) }}</span>
-                <span
-                  >状态:
-                  <dict-tag
-                    :options="order_status"
-                    :value="order.order.orderStatus"
-                  />
-                </span>
+
+                <!-- TODO: 这里的位置不是很好 -->
+                <dict-tag
+                  :options="order_status"
+                  :value="order.order.orderStatus"
+                />
               </div>
               <div class="order-actions">
                 <!-- 操作按钮区域 -->
+                <!-- 待发货=>取消订单 -->
                 <el-button
                   v-if="order.order.orderStatus === 1"
                   type="danger"
@@ -94,6 +94,8 @@
                   @click="handleCancelOrder(order.order.orderId)"
                   >取消订单</el-button
                 >
+
+                <!-- 待收货=>确认收货 -->
                 <el-button
                   v-if="order.order.orderStatus === 2"
                   type="primary"
@@ -101,6 +103,8 @@
                   @click="handleConfirmReceipt(order.order.orderId)"
                   >确认收货</el-button
                 >
+
+                <!-- 待评价=>进行评价 -->
                 <el-button
                   v-if="order.order.orderStatus === 3"
                   type="success"
@@ -108,6 +112,8 @@
                   @click="handleReviewOrder(order)"
                   >进行评价</el-button
                 >
+
+                <!-- 已完成/已取消/已删除=>删除订单 -->
                 <el-button
                   v-if="
                     order.order.orderStatus === 4 ||
@@ -124,6 +130,8 @@
                   "
                   >删除订单</el-button
                 >
+
+                <!-- 已完成=>再次购买 -->
                 <el-button
                   v-if="order.order.orderStatus === 4"
                   type="primary"
@@ -131,6 +139,8 @@
                   @click="handleRepurchase(order.orderDetails)"
                   >再次购买</el-button
                 >
+
+                <!-- 显示地址 -->
                 <el-button
                   type="info"
                   link
@@ -142,6 +152,8 @@
                       : "显示地址"
                   }}
                 </el-button>
+
+                <!-- 显示详情 -->
                 <el-button
                   type="info"
                   link
@@ -242,6 +254,7 @@
         :rules="reviewRules"
         label-width="80px"
       >
+
         <el-form-item label="评价内容" prop="content">
           <el-input
             v-model="reviewForm.content"
@@ -250,6 +263,7 @@
             placeholder="请输入评价内容"
           />
         </el-form-item>
+
         <el-form-item label="评价等级" prop="rating">
           <el-rate
             v-model="reviewForm.rating"
@@ -257,6 +271,7 @@
             show-text
           />
         </el-form-item>
+
         <el-form-item label="匿名评价" prop="isAnonymous">
           <el-switch
             v-model="reviewForm.isAnonymous"
@@ -267,12 +282,15 @@
           />
         </el-form-item>
       </el-form>
+
+      <!-- 评价对话框底部按钮 -->
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="reviewDialogVisible = false">取消</el-button>
           <el-button type="primary" @click="submitReview">提交评价</el-button>
         </span>
       </template>
+
     </el-dialog>
   </div>
 </template>
@@ -399,7 +417,6 @@ const reviewForm = reactive({
   isAnonymous: 0,
   userId: userStore.id,
   orderId: null,
-  productId: null, // 评价是针对产品的，需要产品ID
 });
 
 // 评价表单验证规则
@@ -532,13 +549,8 @@ async function handleConfirmReceipt(orderId) {
 function handleReviewOrder(orderItem) {
   // 打开评价对话框，并填充必要信息
   reviewForm.orderId = orderItem.order.orderId;
-  // 评价是针对订单中的产品，这里简化处理，假设评价整个订单（或第一个产品）
-  // TODO: 如果需要对订单中的每个产品进行评价，需要修改逻辑
-  if (orderItem.orderDetails && orderItem.orderDetails.length > 0) {
-    // 假设评价订单中的第一个产品
-    reviewForm.productId = orderItem.orderDetails[0].productIdSnapshot;
-  } else {
-    // 如果没有订单详情，则无法评价
+  // 评价是针对订单中的产品，这里简化处理，假设评价整个订单
+  if (!orderItem.orderDetails || orderItem.orderDetails.length == 0) {
     ElMessage.warning("该订单没有商品详情，无法评价");
     return;
   }
@@ -566,7 +578,6 @@ async function submitReview() {
           ElMessage.error(response.msg || "评价提交失败");
         }
       } catch (error) {
-        console.error("Error submitting review:", error);
         ElMessage.error("提交评价时发生错误");
       }
     }
@@ -585,10 +596,6 @@ function handleReviewDialogClosed() {
 /** 处理删除订单 */
 async function handleDeleteOrder(orderId, orderStatus) {
   let confirmMsg = "是否确认删除该订单?";
-  if (orderStatus === 3) {
-    // 待评价状态
-    confirmMsg = "该订单尚未评价，确认删除吗?";
-  }
 
   ElMessageBox.confirm(confirmMsg, "警告", {
     confirmButtonText: "确定",
@@ -653,7 +660,7 @@ async function handleRepurchase(orderDetails) {
         }
         ElMessage.success("订单中的商品已加入购物车");
         // TODO: 可以考虑跳转到购物车页面
-        // router.push('/manage/my-cart');
+        router.push("/main/my-cart");
       } catch (error) {
         console.error("Error during repurchase:", error);
         ElMessage.error("再次购买时发生错误");
