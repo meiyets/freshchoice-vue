@@ -42,3 +42,11 @@ export function delOrder(orderId) {
     method: 'delete'
   })
 }
+
+// 根据用户id查询订单列表
+export function listOrderByUserId(userId) {
+  return request({
+    url: '/manage/order/list-user/' + userId,
+    method: 'get',
+  })
+}
