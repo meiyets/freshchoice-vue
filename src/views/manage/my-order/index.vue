@@ -78,17 +78,28 @@
               <div class="summary-top">
                 <div class="order-basic-info">
                   <span>
-                    <el-icon><Document /></el-icon> <!-- 订单编号图标 -->
+                    <el-icon><Document /></el-icon>
+                    <!-- 订单编号图标 -->
                     订单编号: {{ order.order.orderCode }}
                   </span>
-                  <span class="separator">|</span> <!-- 添加分隔符 -->
+                  <span class="separator">|</span>
+                  <!-- 添加分隔符 -->
                   <span>
-                    <el-icon><Shop /></el-icon> <!-- 店铺图标 -->
-                    店铺: <span class="store-name-tag">{{ order.store.storeName }}</span> <!-- 店铺名称使用标签样式 -->
+                    <el-icon><Shop /></el-icon>
+                    <!-- 店铺图标 -->
+                    店铺:
+                    <span
+                      class="store-name-tag clickable"
+                      @click="goToStoreDetail(order.store.storeId)"
+                      >{{ order.store.storeName }}</span
+                    >
+                    <!-- 店铺名称使用标签样式并添加点击事件 -->
                   </span>
-                  <span class="separator">|</span> <!-- 添加分隔符 -->
+                  <span class="separator">|</span>
+                  <!-- 添加分隔符 -->
                   <span>
-                    <el-icon><PriceTag /></el-icon> <!-- 总额图标 -->
+                    <el-icon><PriceTag /></el-icon>
+                    <!-- 总额图标 -->
                     总额: ¥{{ order.order.totalAmount.toFixed(2) }}
                   </span>
                 </div>
@@ -100,6 +111,7 @@
                   />
                 </div>
               </div>
+
               <!-- 操作按钮区域 -->
               <div class="order-actions">
                 <!-- 待发货=>取消订单 -->
@@ -223,9 +235,11 @@
                   :key="detail.orderDetailId"
                   class="order-detail-item"
                 >
-                  <span class="item-name">{{
-                    detail.productNameSnapshot
-                  }}</span>
+                  <span
+                    class="item-name clickable"
+                    @click="goToProductDetail(detail.productIdSnapshot)"
+                    >{{ detail.productNameSnapshot }}</span
+                  >
                   <span class="item-price"
                     >¥{{ detail.productPriceSnapshot.toFixed(2) }}</span
                   >
@@ -683,13 +697,31 @@ async function handleRepurchase(orderDetails) {
     .catch(() => {}); // 用户取消操作
 }
 
+/** 跳转到店铺详情页 */
+function goToStoreDetail(storeId) {
+  if (storeId) {
+    router.push({ path: `/myStore/storefront/${storeId}` });
+  } else {
+    ElMessage.warning("无法获取店铺ID");
+  }
+}
+
+/** 跳转到产品详情页 */
+function goToProductDetail(productId) {
+  if (productId) {
+    router.push({ path: `/main/browse/${productId}` });
+  } else {
+    ElMessage.warning("无法获取产品ID");
+  }
+}
+
 // 页面加载时获取订单列表
 onMounted(() => {
   getList();
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 /* 页面容器 */
 .my-order-container {
   padding: 20px;
@@ -756,7 +788,7 @@ onMounted(() => {
 
 /* 为组内的订单卡片添加底部边线，除了最后一个 */
 .order-group .order-card:not(:last-child) {
-    border-bottom: 1px solid #ebeef5; /* 卡片之间的分隔线 */
+  border-bottom: 1px solid #ebeef5; /* 卡片之间的分隔线 */
 }
 
 /* 订单摘要布局 */
@@ -792,47 +824,46 @@ onMounted(() => {
 }
 
 .order-basic-info span:last-child {
-    margin-right: 0; /* 最后一个信息项移除右侧间距 */
+  margin-right: 0; /* 最后一个信息项移除右侧间距 */
 }
 
-
 .order-basic-info span .el-icon {
-    margin-right: 5px;
-    font-size: 16px;
-    color: #409eff;
+  margin-right: 5px;
+  font-size: 16px;
+  color: #409eff;
 }
 
 /* 订单编号样式 */
 .order-basic-info span:nth-child(1) {
-    font-weight: bold;
-    color: #303133;
+  font-weight: bold;
+  color: #303133;
 }
 
 /* 店铺名称标签样式 */
 .store-name-tag {
-    display: inline-block;
-    background-color: #ecf5ff;
-    color: #409eff;
-    border: 1px solid #d9ecff;
-    padding: 2px 8px;
-    border-radius: 4px;
-    margin-left: 5px;
-    font-weight: normal;
-    font-size: 13px; /* 标签字体稍微小一点 */
+  display: inline-block;
+  background-color: #ecf5ff;
+  color: #409eff;
+  border: 1px solid #d9ecff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 5px;
+  font-weight: normal;
+  font-size: 13px; /* 标签字体稍微小一点 */
 }
 
 /* 总额样式 */
 .order-basic-info span:nth-child(5) {
-    color: #f56c6c;
-    font-weight: bold;
-    font-size: 15px; /* 总额字体稍微大一点 */
+  color: #f56c6c;
+  font-weight: bold;
+  font-size: 15px; /* 总额字体稍微大一点 */
 }
 
 /* 分隔符样式 */
 .order-basic-info .separator {
-    margin: 0 10px;
-    color: #dcdfe6;
-    font-weight: normal;
+  margin: 0 10px;
+  color: #dcdfe6;
+  font-weight: normal;
 }
 
 /* 订单状态样式 */
@@ -854,9 +885,8 @@ onMounted(() => {
 }
 
 .order-actions .el-button {
-    font-size: 13px; /* 按钮字体大小 */
+  font-size: 13px; /* 按钮字体大小 */
 }
-
 
 /* 地址和详情区域 */
 .order-address-details,
@@ -883,7 +913,7 @@ onMounted(() => {
 }
 
 .order-address-details p:last-child {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 /* 商品清单头部 */
@@ -899,15 +929,14 @@ onMounted(() => {
 }
 
 .detail-header span {
-    flex: 1; /* 平均分配宽度 */
-    text-align: center; /* 文字居中 */
+  flex: 1; /* 平均分配宽度 */
+  text-align: center; /* 文字居中 */
 }
 
 .detail-header span:first-child {
-    flex: 2; /* 商品名称占据更多空间 */
-    text-align: left; /* 商品名称靠左 */
+  flex: 2; /* 商品名称占据更多空间 */
+  text-align: left; /* 商品名称靠左 */
 }
-
 
 /* 单个商品详情项 */
 .order-detail-item {
@@ -921,31 +950,28 @@ onMounted(() => {
 }
 
 .order-detail-item:last-child {
-    border-bottom: none; /* 最后一个商品项没有底边线 */
+  border-bottom: none; /* 最后一个商品项没有底边线 */
 }
 
 .order-detail-item span {
-    flex: 1;
-    text-align: center;
+  flex: 1;
+  text-align: center;
 }
 
 .order-detail-item .item-name {
-    flex: 2;
-    text-align: left;
-    color: #409eff; /* 商品名称颜色 */
+  flex: 2;
+  text-align: left;
+  color: #409eff; /* 商品名称颜色 */
 }
 
 .order-detail-item .item-price {
-    color: #e6a23c; /* 单价颜色 */
+  color: #e6a23c; /* 单价颜色 */
 }
-
-
 
 .order-detail-item .item-subtotal {
-    font-weight: bold;
-    color: #f56c6c; /* 小计颜色 */
+  font-weight: bold;
+  color: #f56c6c; /* 小计颜色 */
 }
-
 
 /* 分页容器 */
 .pagination-container {
@@ -960,59 +986,62 @@ onMounted(() => {
 
 /* 评价对话框样式 */
 .el-dialog {
-    border-radius: 8px; /* 对话框圆角 */
-    overflow: hidden; /* 确保内容不溢出圆角 */
+  border-radius: 8px; /* 对话框圆角 */
+  overflow: hidden; /* 确保内容不溢出圆角 */
 }
 
 .el-dialog__header {
-    background-color: #f5f7fa; /* 头部背景色 */
-    padding: 15px 20px; /* 头部内边距 */
-    border-bottom: 1px solid #ebeef5; /* 头部底边线 */
+  background-color: #f5f7fa; /* 头部背景色 */
+  padding: 15px 20px; /* 头部内边距 */
+  border-bottom: 1px solid #ebeef5; /* 头部底边线 */
 }
 
 .el-dialog__title {
-    font-size: 18px; /* 标题字体大小 */
-    color: #303133; /* 标题颜色 */
-    font-weight: bold;
+  font-size: 18px; /* 标题字体大小 */
+  color: #303133; /* 标题颜色 */
+  font-weight: bold;
 }
 
 .el-dialog__body {
-    padding: 20px; /* 内容区域内边距 */
+  padding: 20px; /* 内容区域内边距 */
 }
 
 /* 评价表单样式 */
 .el-form-item {
-    margin-bottom: 20px; /* 表单项之间间距 */
+  margin-bottom: 20px; /* 表单项之间间距 */
 }
 
 .el-form-item__label {
-    font-weight: bold; /* 标签加粗 */
-    color: #606266; /* 标签颜色 */
+  font-weight: bold; /* 标签加粗 */
+  color: #606266; /* 标签颜色 */
 }
 
 /* 评价内容输入框 */
 
-
 /* 评价等级星星 */
 .el-form-item__content .el-rate {
-    /* 可以根据需要调整 el-rate 样式 */
-    height: 32px; /* 确保与输入框高度对齐 */
-    display: flex;
-    align-items: center;
+  /* 可以根据需要调整 el-rate 样式 */
+  height: 32px; /* 确保与输入框高度对齐 */
+  display: flex;
+  align-items: center;
 }
 
 /* 匿名评价开关 */
 
-
-
 /* 评价对话框底部按钮区域 */
 .el-dialog__footer {
-    background-color: #f5f7fa; /* 底部背景色 */
-    padding: 15px 20px; /* 底部内边距 */
-    border-top: 1px solid #ebeef5; /* 底部顶边线 */
-    text-align: right; /* 按钮靠右对齐 */
+  background-color: #f5f7fa; /* 底部背景色 */
+  padding: 15px 20px; /* 底部内边距 */
+  border-top: 1px solid #ebeef5; /* 底部顶边线 */
+  text-align: right; /* 按钮靠右对齐 */
 }
 
-
-
+/* 使店铺名称和产品名称可点击 */
+.clickable {
+  cursor: pointer;
+  text-decoration: underline;
+  &:hover {
+    color: #66b1ff; /* Hover 颜色 */
+  }
+}
 </style>
