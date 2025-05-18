@@ -1020,6 +1020,7 @@ async function handleCreateOrder() {
                     totalAmount: item.quantity * item.product.price,
                     priceUnitSnapshot: item.product.priceUnit,
                     productPriceSnapshot: item.product.price,
+                    productMainUrlSnapshot: item.product.mainImg,
                   }).catch((detailError) => {
                     console.error("Error adding order detail:", detailError);
                     ElMessage.error(

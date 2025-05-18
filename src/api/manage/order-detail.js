@@ -1,7 +1,7 @@
 import request from '@/utils/request'
 
 // 查询订单详情列表
-export function listOrderDDetail(query) {
+export function listOrderDetail(query) {
   return request({
     url: '/manage/order-detail/list',
     method: 'get',

@@ -1006,6 +1006,7 @@ const confirmOrder = async () => {
           totalAmount: productInfo.value.price * quantity.value,
           priceUnitSnapshot: productInfo.value.priceUnit,
           productPriceSnapshot: productInfo.value.price,
+          productMainUrlSnapshot: productInfo.value.mainImg,
         }).then((res) => {
           if (res.code === 200) {
             // 订单创建成功，跳转到订单详情页或支付页
