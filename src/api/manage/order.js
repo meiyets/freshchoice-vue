@@ -50,3 +50,11 @@ export function listOrderByUserId(userId) {
     method: 'get',
   })
 }
+
+// 根据店铺id查询订单列表
+export function listOrderByStoreId(storeId) {
+  return request({
+    url: "/manage/order/list-store/" + storeId,
+    method: "get",
+  });
+}
