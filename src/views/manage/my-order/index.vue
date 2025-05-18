@@ -3,8 +3,10 @@
     <!-- 页面头部 -->
     <div class="order-header">
       <h2>我的订单</h2>
+
       <!-- 搜索和状态筛选区域 -->
       <div class="order-actions">
+        <!-- 订单编号 -->
         <el-input
           v-model="queryParams.orderCode"
           placeholder="请输入订单编号"
@@ -12,6 +14,8 @@
           style="width: 200px; margin-right: 10px"
           @keyup.enter="handleQuery"
         />
+
+        <!-- 订单状态 -->
         <el-select
           v-model="queryParams.orderStatus"
           placeholder="请选择订单状态"
@@ -27,6 +31,8 @@
             :value="dict.value"
           />
         </el-select>
+
+        <!-- 搜索和重置按钮 -->
         <el-button type="primary" icon="Search" @click="handleQuery"
           >搜索</el-button
         >
@@ -36,6 +42,7 @@
 
     <!-- 订单列表 -->
     <div class="order-content" v-loading="loading">
+      <!-- 为空时默认显示 -->
       <el-empty
         v-if="!loading && orderGroups.length === 0"
         description="暂无订单数据"
@@ -51,8 +58,9 @@
         >
           <!-- 分组头部：父订单号或单订单标识 -->
           <div class="group-header">
+            <!-- 如果分组的订单号存在，那么显示父订单编码；反之显示独立订单 -->
             <span v-if="group.parentOrderId"
-              >父订单号：{{ group.parentOrderCode }}</span
+              >联合订单：{{ group.parentOrderCode }}</span
             >
             <span v-else>独立订单</span>
           </div>
@@ -68,13 +76,7 @@
               <div class="order-info">
                 <span>订单编号: {{ order.order.orderCode }}</span>
                 <span>店铺: {{ order.store.storeName }}</span>
-                <span
-                  >总额: ¥{{
-                    order.order.totalAmount
-                      ? order.order.totalAmount.toFixed(2)
-                      : "0.00"
-                  }}</span
-                >
+                <span>总额: ¥{{ order.order.totalAmount.toFixed(2) }}</span>
                 <span
                   >状态:
                   <dict-tag
@@ -312,11 +314,19 @@ const queryParams = reactive({
 });
 
 // 计算属性：按父订单号分组的订单列表
+// 每组包含：父订单ID、父订单编码和订单列表
+// 对于独立订单，父订单ID为null，父订单编码为'独立订单'
 const orderGroups = computed(() => {
   const grouped = {};
   orderList.value.forEach((orderItem) => {
-    const parentId = orderItem.order.parentOrderId || "single"; // 使用'single'标识没有父订单的组
+    // 获取父订单号
+    // 即使没有父订单号，先为其赋本身订单号
+    // 这样随后创建组，组内父订单号依旧为null，编码为'独立订单'
+    const parentId = orderItem.order.parentOrderId || orderItem.order.orderId;
+
+    // 如果组不存在，则创建一个新组
     if (!grouped[parentId]) {
+      // 每组包含：父订单ID、父订单编码和订单列表
       grouped[parentId] = {
         parentOrderId: orderItem.order.parentOrderId,
         parentOrderCode: orderItem.order.parentOrderId
@@ -324,13 +334,16 @@ const orderGroups = computed(() => {
           : "独立订单",
         orders: [],
       };
-      // 如果有父订单ID，异步获取父订单编码
+      // 如果有父订单ID，异步获取父订单编码；反之，独立订单则直接使用'独立订单'
       if (orderItem.order.parentOrderId) {
         fetchParentOrderCode(orderItem.order.parentOrderId, grouped[parentId]);
       }
     }
+    // 将订单添加到对应的组
     grouped[parentId].orders.push(orderItem);
   });
+
+  // 返回分组后的 对象数组
   return Object.values(grouped);
 });
 
@@ -339,22 +352,27 @@ const parentOrderCodeMap = reactive({});
 
 // 异步获取父订单编码
 async function fetchParentOrderCode(parentOrderId, group) {
+  // 如果该父订单号已经获取过编码，直接返回
   if (parentOrderCodeMap[parentOrderId]) {
     group.parentOrderCode = parentOrderCodeMap[parentOrderId];
     return;
   }
+
   try {
+    // 获取父订单数据
     const response = await getOrder(parentOrderId);
     if (response.code === 200 && response.data) {
+      // 更新映射
       parentOrderCodeMap[parentOrderId] = response.data.orderCode;
+      // 更新分组的父订单号
       group.parentOrderCode = response.data.orderCode;
     } else {
       group.parentOrderCode = "获取失败";
-      console.error("Failed to fetch parent order code:", response.msg);
+      console.error("获取失败:", response.msg);
     }
   } catch (error) {
     group.parentOrderCode = "获取失败";
-    console.error("Error fetching parent order code:", error);
+    console.error("获取失败:", error);
   }
 }
 
@@ -414,7 +432,7 @@ async function getList() {
         );
       }
 
-      // 手动分页
+      // 手动分页(选定页码范围的数据)
       const start = (queryParams.pageNum - 1) * queryParams.pageSize;
       const end = start + queryParams.pageSize;
       orderList.value = filteredOrders.slice(start, end);
