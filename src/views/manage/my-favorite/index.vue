@@ -11,7 +11,7 @@
       <!-- 搜索项 -->
       <el-form-item label="产品名称" prop="productName">
         <el-input
-          v-model="queryParams.productName"
+          v-model="queryParams.params.productName"
           placeholder="请输入产品名称"
           clearable
           style="width: 190px"
@@ -20,36 +20,36 @@
       </el-form-item>
       <el-form-item label="店铺名称" prop="storeName">
         <el-input
-          v-model="queryParams.storeName"
+          v-model="queryParams.params.storeName"
           placeholder="请输入店铺名称"
           clearable
           style="width: 190px"
           @keyup.enter="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="排序方式" prop="orderByColumn">
+      <el-form-item label="排序方式" prop="orderBy">
         <el-select
-          v-model="queryParams.orderByColumn"
+          v-model="queryParams.params.orderBy"
           placeholder="请选择排序方式"
           clearable
           style="width: 180px"
           @change="handleQuery"
         >
-          <el-option label="按收藏时间" value="createTime" />
-          <el-option label="按价格" value="price" />
-          <el-option label="按评分" value="avgRating" />
+          <el-option label="按收藏时间" value="f.create_time" />
+          <el-option label="按价格" value="p.price" />
+          <el-option label="按评分" value="p.avg_rating" />
         </el-select>
       </el-form-item>
-      <el-form-item label="排序顺序" prop="isAsc">
+      <el-form-item label="排序顺序" prop="isDesc">
         <el-select
-          v-model="queryParams.isAsc"
+          v-model="queryParams.params.isDesc"
           placeholder="请选择排序顺序"
           clearable
           style="width: 180px"
           @change="handleQuery"
         >
-          <el-option label="升序" value="asc" />
-          <el-option label="降序" value="desc" />
+          <el-option label="升序" value="false" />
+          <el-option label="降序" value="true" />
         </el-select>
       </el-form-item>
 
@@ -296,10 +296,12 @@ const queryParams = reactive({
   pageNum: 1,
   pageSize: 12, // 网格布局，每行4个，显示3行
   userId: userStore.id, // 当前用户ID
-  productName: undefined,
-  storeName: undefined,
-  orderByColumn: "createTime", // 默认按收藏时间排序
-  isAsc: "desc", // 默认降序
+  params: {
+    productName: undefined,
+    storeName: undefined,
+    orderBy: "f.create_time", // 默认按收藏时间排序
+    isDesc: 'true', // 默认降序
+  }
 });
 
 /** 查询收藏列表 */
@@ -339,7 +341,7 @@ function resetQuery() {
   proxy.resetForm("queryRef");
   queryParams.productName = undefined;
   queryParams.storeName = undefined;
-  queryParams.orderByColumn = "createTime";
+  queryParams.orderBy = "createTime";
   queryParams.isAsc = "desc";
   handleQuery();
 }
