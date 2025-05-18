@@ -65,27 +65,43 @@
             <span v-else>独立订单</span>
           </div>
 
-          <!-- 组内订单列表 -->
+          <!-- 订单列表 -->
           <el-card
             v-for="order in group.orders"
             :key="order.order.orderId"
             class="order-card"
             shadow="hover"
           >
+            <!-- 调整订单摘要布局 -->
             <div class="order-summary">
-              <div class="order-info">
-                <span>订单编号: {{ order.order.orderCode }}</span>
-                <span>店铺: {{ order.store.storeName }}</span>
-                <span>总额: ¥{{ order.order.totalAmount.toFixed(2) }}</span>
-
-                <!-- TODO: 这里的位置不是很好 -->
-                <dict-tag
-                  :options="order_status"
-                  :value="order.order.orderStatus"
-                />
+              <!-- 顶部信息区域：订单基本信息和状态 -->
+              <div class="summary-top">
+                <div class="order-basic-info">
+                  <span>
+                    <el-icon><Document /></el-icon> <!-- 订单编号图标 -->
+                    订单编号: {{ order.order.orderCode }}
+                  </span>
+                  <span class="separator">|</span> <!-- 添加分隔符 -->
+                  <span>
+                    <el-icon><Shop /></el-icon> <!-- 店铺图标 -->
+                    店铺: <span class="store-name-tag">{{ order.store.storeName }}</span> <!-- 店铺名称使用标签样式 -->
+                  </span>
+                  <span class="separator">|</span> <!-- 添加分隔符 -->
+                  <span>
+                    <el-icon><PriceTag /></el-icon> <!-- 总额图标 -->
+                    总额: ¥{{ order.order.totalAmount.toFixed(2) }}
+                  </span>
+                </div>
+                <!-- 订单状态单独显示 -->
+                <div class="order-status">
+                  <dict-tag
+                    :options="order_status"
+                    :value="order.order.orderStatus"
+                  />
+                </div>
               </div>
+              <!-- 操作按钮区域 -->
               <div class="order-actions">
-                <!-- 操作按钮区域 -->
                 <!-- 待发货=>取消订单 -->
                 <el-button
                   v-if="order.order.orderStatus === 1"
@@ -254,7 +270,6 @@
         :rules="reviewRules"
         label-width="80px"
       >
-
         <el-form-item label="评价内容" prop="content">
           <el-input
             v-model="reviewForm.content"
@@ -290,7 +305,6 @@
           <el-button type="primary" @click="submitReview">提交评价</el-button>
         </span>
       </template>
-
     </el-dialog>
   </div>
 </template>
@@ -675,135 +689,330 @@ onMounted(() => {
 });
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
+/* 页面容器 */
 .my-order-container {
   padding: 20px;
-
-  .order-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-
-    h2 {
-      margin: 0;
-      font-size: 24px;
-    }
-
-    .order-actions {
-      display: flex;
-      align-items: center;
-    }
-  }
-
-  .order-content {
-    min-height: 300px; /* 确保加载时有一定高度 */
-
-    .order-group {
-      margin-bottom: 20px;
-      border: 1px solid #ebeef5;
-      border-radius: 4px;
-      overflow: hidden;
-
-      .group-header {
-        background-color: #f5f7fa;
-        padding: 10px 15px;
-        font-weight: bold;
-        border-bottom: 1px solid #ebeef5;
-      }
-
-      .order-card {
-        margin: 0;
-        border: none;
-        border-bottom: 1px solid #ebeef5; /* 卡片之间加分隔线 */
-
-        &:last-child {
-          border-bottom: none; /* 最后一个卡片没有下边线 */
-        }
-
-        .el-card__body {
-          padding: 15px;
-        }
-
-        .order-summary {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          flex-wrap: wrap; /* 允许换行 */
-
-          .order-info {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px; /* 信息之间的间距 */
-            font-size: 14px;
-            color: #606266;
-          }
-
-          .order-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px; /* 按钮之间的间距 */
-            margin-top: 10px; /* 响应式布局下，按钮换行后与上方信息保持距离 */
-            @media (min-width: 768px) {
-              margin-top: 0; /* 非小屏幕下取消上边距 */
-            }
-          }
-        }
-
-        .order-address-details,
-        .order-item-details {
-          margin-top: 15px;
-          padding-top: 15px;
-          border-top: 1px dashed #ebeef5;
-
-          h4 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            font-size: 16px;
-            color: #303133;
-          }
-
-          p {
-            margin-bottom: 5px;
-            font-size: 14px;
-            color: #606266;
-          }
-        }
-
-        .order-item-details {
-          .detail-header {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr; /* 商品名称 | 单价 | 数量 | 小计 */
-            gap: 10px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            padding-bottom: 5px;
-            border-bottom: 1px solid #ebeef5;
-          }
-          .order-detail-item {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr; /* 商品名称 | 单价 | 数量 | 小计 */
-            gap: 10px;
-            font-size: 14px;
-            color: #606266;
-            margin-bottom: 5px;
-          }
-          /* 响应式调整 */
-          @media (max-width: 768px) {
-            .detail-header,
-            .order-detail-item {
-              grid-template-columns: 1.5fr 1fr 1fr 1fr; /* 调整列宽 */
-            }
-          }
-        }
-      }
-    }
-  }
-
-  .pagination-container {
-    margin-top: 20px;
-    display: flex;
-    justify-content: center;
-  }
+  background-color: #f8f8f8; /* 轻微的背景色 */
 }
+
+/* 页面头部 */
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.order-header h2 {
+  margin: 0;
+  font-size: 24px;
+  color: #333;
+}
+
+.order-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* 搜索和重置按钮之间的间距 */
+}
+
+/* 订单列表内容区域 */
+.order-content {
+  min-height: 300px; /* 确保内容区域有最小高度 */
+}
+
+/* 针对父订单分组的样式 */
+.order-group {
+  margin-bottom: 25px; /* 组与组之间的间距增加 */
+  border: 1px solid #e4e7ed; /* 边框颜色调整 */
+  border-radius: 8px; /* 圆角增加 */
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); /* 阴影更明显 */
+  background-color: #fff; /* 组背景色 */
+}
+
+.group-header {
+  background-color: #f2f6fc; /* 组头部背景色更突出 */
+  padding: 14px 20px; /* 组头部内边距 */
+  font-weight: bold;
+  font-size: 16px; /* 字体大小增加 */
+  color: #303133;
+  border-bottom: 1px solid #e4e7ed; /* 组头部底边线 */
+}
+
+/* 调整组内订单卡片的样式 */
+.order-group .order-card {
+  margin-top: 0;
+  margin-bottom: 0;
+  border: none; /* 移除卡片自身边框 */
+  box-shadow: none; /* 移除卡片阴影 */
+  border-radius: 0; /* 移除卡片圆角 */
+  padding: 0; /* 移除卡片默认内边距，由内部元素控制 */
+}
+
+/* 为组内的订单卡片添加底部边线，除了最后一个 */
+.order-group .order-card:not(:last-child) {
+    border-bottom: 1px solid #ebeef5; /* 卡片之间的分隔线 */
+}
+
+/* 订单摘要布局 */
+.order-summary {
+  display: flex;
+  flex-direction: column; /* 摘要内部改为垂直布局 */
+  padding: 15px 20px; /* 摘要内边距 */
+}
+
+/* 顶部信息区域：订单基本信息和状态 */
+.summary-top {
+  display: flex;
+  justify-content: space-between; /* 基本信息和状态左右对齐 */
+  align-items: center;
+  margin-bottom: 15px; /* 顶部信息和操作按钮之间的间距 */
+  flex-wrap: wrap; /* 允许换行 */
+}
+
+.order-basic-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: #606266;
+  flex-grow: 1; /* 允许基本信息区域占据更多空间 */
+}
+
+.order-basic-info span {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-right: 20px; /* 信息项之间的右侧间距 */
+}
+
+.order-basic-info span:last-child {
+    margin-right: 0; /* 最后一个信息项移除右侧间距 */
+}
+
+
+.order-basic-info span .el-icon {
+    margin-right: 5px;
+    font-size: 16px;
+    color: #409eff;
+}
+
+/* 订单编号样式 */
+.order-basic-info span:nth-child(1) {
+    font-weight: bold;
+    color: #303133;
+}
+
+/* 店铺名称标签样式 */
+.store-name-tag {
+    display: inline-block;
+    background-color: #ecf5ff;
+    color: #409eff;
+    border: 1px solid #d9ecff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 5px;
+    font-weight: normal;
+    font-size: 13px; /* 标签字体稍微小一点 */
+}
+
+/* 总额样式 */
+.order-basic-info span:nth-child(5) {
+    color: #f56c6c;
+    font-weight: bold;
+    font-size: 15px; /* 总额字体稍微大一点 */
+}
+
+/* 分隔符样式 */
+.order-basic-info .separator {
+    margin: 0 10px;
+    color: #dcdfe6;
+    font-weight: normal;
+}
+
+/* 订单状态样式 */
+.order-status {
+  flex-shrink: 0; /* 订单状态不收缩 */
+  font-weight: bold;
+  color: #67c23a; /* 默认状态颜色 */
+}
+
+/* 操作按钮区域 */
+.order-actions {
+  display: flex;
+  justify-content: flex-end; /* 按钮靠右对齐 */
+  align-items: center;
+  flex-wrap: wrap; /* 允许按钮换行 */
+  gap: 10px; /* 按钮之间的间距 */
+  padding-top: 15px; /* 与上方内容的间距 */
+  border-top: 1px dashed #ebeef5; /* 添加虚线上边框 */
+}
+
+.order-actions .el-button {
+    font-size: 13px; /* 按钮字体大小 */
+}
+
+
+/* 地址和详情区域 */
+.order-address-details,
+.order-item-details {
+  padding: 15px 20px;
+  background-color: #f9fafc; /* 轻微的背景色区分 */
+  border-top: 1px solid #ebeef5;
+}
+
+.order-address-details h4,
+.order-item-details h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #303133;
+  border-bottom: 1px solid #ebeef5; /* 标题下划线 */
+  padding-bottom: 5px;
+}
+
+.order-address-details p {
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.order-address-details p:last-child {
+    margin-bottom: 0;
+}
+
+/* 商品清单头部 */
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #ebeef5;
+  font-size: 14px;
+  color: #303133;
+}
+
+.detail-header span {
+    flex: 1; /* 平均分配宽度 */
+    text-align: center; /* 文字居中 */
+}
+
+.detail-header span:first-child {
+    flex: 2; /* 商品名称占据更多空间 */
+    text-align: left; /* 商品名称靠左 */
+}
+
+
+/* 单个商品详情项 */
+.order-detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed #f2f6fc; /* 虚线分隔 */
+  font-size: 14px;
+  color: #606266;
+}
+
+.order-detail-item:last-child {
+    border-bottom: none; /* 最后一个商品项没有底边线 */
+}
+
+.order-detail-item span {
+    flex: 1;
+    text-align: center;
+}
+
+.order-detail-item .item-name {
+    flex: 2;
+    text-align: left;
+    color: #409eff; /* 商品名称颜色 */
+}
+
+.order-detail-item .item-price {
+    color: #e6a23c; /* 单价颜色 */
+}
+
+
+
+.order-detail-item .item-subtotal {
+    font-weight: bold;
+    color: #f56c6c; /* 小计颜色 */
+}
+
+
+/* 分页容器 */
+.pagination-container {
+  margin-top: 20px;
+  padding: 15px 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: center; /* 分页组件居中 */
+}
+
+/* 评价对话框样式 */
+.el-dialog {
+    border-radius: 8px; /* 对话框圆角 */
+    overflow: hidden; /* 确保内容不溢出圆角 */
+}
+
+.el-dialog__header {
+    background-color: #f5f7fa; /* 头部背景色 */
+    padding: 15px 20px; /* 头部内边距 */
+    border-bottom: 1px solid #ebeef5; /* 头部底边线 */
+}
+
+.el-dialog__title {
+    font-size: 18px; /* 标题字体大小 */
+    color: #303133; /* 标题颜色 */
+    font-weight: bold;
+}
+
+.el-dialog__body {
+    padding: 20px; /* 内容区域内边距 */
+}
+
+/* 评价表单样式 */
+.el-form-item {
+    margin-bottom: 20px; /* 表单项之间间距 */
+}
+
+.el-form-item__label {
+    font-weight: bold; /* 标签加粗 */
+    color: #606266; /* 标签颜色 */
+}
+
+/* 评价内容输入框 */
+
+
+/* 评价等级星星 */
+.el-form-item__content .el-rate {
+    /* 可以根据需要调整 el-rate 样式 */
+    height: 32px; /* 确保与输入框高度对齐 */
+    display: flex;
+    align-items: center;
+}
+
+/* 匿名评价开关 */
+
+
+
+/* 评价对话框底部按钮区域 */
+.el-dialog__footer {
+    background-color: #f5f7fa; /* 底部背景色 */
+    padding: 15px 20px; /* 底部内边距 */
+    border-top: 1px solid #ebeef5; /* 底部顶边线 */
+    text-align: right; /* 按钮靠右对齐 */
+}
+
+
+
 </style>
