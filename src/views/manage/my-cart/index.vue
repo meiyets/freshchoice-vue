@@ -43,7 +43,6 @@
         />
 
         <!-- 已选商品信息 -->
-        <!-- TODO:之后检查这里价格算的对不对 -->
         <div class="summary-info">
           <span>已选 {{ selectedItemsCount }} 件商品</span>
           <span class="total-price-display"
@@ -237,7 +236,6 @@
           </div>
 
           <!-- 为空时点击跳转到“我的地址簿” -->
-          <!-- TODO: -->
           <div v-else class="empty-address-state">
             <el-empty description="请添加收货地址"></el-empty>
             <el-button type="primary" @click="goToAddressManagement">
@@ -892,8 +890,7 @@ async function getAddresses() {
 
 /** 跳转到地址管理页面 */
 function goToAddressManagement() {
-  // TODO: 确认地址管理页面的路由路径
-  router.push({ path: "/manage/address" }); // 假设地址管理页面的路由是 /manage/address
+  router.push({ path: "/main/my-address" }); // 假设地址管理页面的路由是 /manage/address
 }
 
 
@@ -1551,7 +1548,6 @@ async function handleBeforeUnload(event) {
   }
 
   .other-info-section {
-    // TODO: 添加支付方式选择等
     padding: 0 15px; // 添加内边距
     h3 {
       margin-bottom: 15px;
