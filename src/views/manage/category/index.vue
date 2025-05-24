@@ -581,7 +581,7 @@ getAuditList();
 </script>
 
 <!-- CSS样式 -->
-<style scoped>
+<style lang="scss" scoped>
 /* 搜索栏中下拉框样式 */
 .query-select {
   width: 180px;
@@ -614,5 +614,189 @@ getAuditList();
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+/* 添加整体页面容器的内边距 */
+.app-container {
+  padding: 20px;
+  background-color: #f9f9f9; /* 添加一个浅背景色 */
+  border-radius: 8px; /* 添加圆角 */
+  opacity: 1; /* 增加透明度 */
+  position: relative; /* 为伪元素定位提供参考 */
+  overflow: hidden; /* 隐藏溢出的伪元素 */
+  border: 1px solid #e0e0e0; /* 为主要内容区域添加细微边框 */
+}
+
+/* @keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+} */
+
+/* 添加一个 subtle 的背景渐变效果 */
+.app-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    45deg,
+    #b0b0b0 0%,
+    #c0c0c0 100%
+  ); /* 调整渐变颜色，增加对比度 */
+  opacity: 0.7; /* 增加透明度 */
+  z-index: -1; /* 确保在内容下方 */
+}
+
+/* 调整搜索表单的样式 */
+.el-form--inline .el-form-item {
+  margin-right: 20px; /* 增加表单项右侧间距 */
+  margin-bottom: 15px; /* 增加表单项底部间距 */
+  /* 添加边框和阴影 */
+  border: 1px solid #dcdfe6; /* 浅灰色边框 */
+  border-radius: 4px; /* 圆角 */
+  padding: 8px 12px; /* 内边距 */
+  background-color: #fff; /* 白色背景 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* 细微阴影 */
+  transition: all 0.3s ease; /* 添加过渡效果 */
+}
+
+.el-form--inline .el-form-item:hover {
+  border-color: #c0c4cc; /* 鼠标悬停时边框颜色变深 */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* 鼠标悬停时阴影变大 */
+}
+
+/* 调整按钮样式 */
+.el-button {
+  border-radius: 4px; /* 按钮圆角 */
+  transition: all 0.3s ease; /* 添加过渡效果 */
+}
+
+.el-button:hover {
+  opacity: 0.9; /* 鼠标悬停时降低透明度 */
+  transform: translateY(-2px); /* 鼠标悬停时向上移动2px */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影 */
+}
+
+.el-button:active {
+  transform: translateY(0); /* 鼠标按下时恢复位置 */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 鼠标按下时减小阴影 */
+}
+
+/* 调整表格样式 */
+.el-table {
+  margin-top: 20px; /* 表格顶部间距 */
+  border-radius: 8px; /* 表格圆角 */
+  overflow: hidden; /* 隐藏溢出内容，配合圆角使用 */
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); /* 添加阴影 */
+}
+
+.el-table th,
+.el-table td {
+  padding: 12px 0; /* 调整表格单元格内边距 */
+  font-size: 14px; /* 调整表格字体大小 */
+}
+
+.el-table th {
+  background-color: #f5f7fa; /* 表头背景色 */
+  color: #303133; /* 表头字体颜色 */
+  font-weight: bold; /* 表头字体加粗 */
+}
+
+/* 调整分页组件样式 */
+.pagination-container {
+  margin-top: 20px; /* 分页组件顶部间距 */
+  justify-content: flex-end; /* 分页组件靠右对齐 */
+}
+
+/* 调整对话框样式 */
+.el-dialog__wrapper {
+  .el-dialog {
+    border-radius: 15px; /* 增加对话框圆角 */
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4); /* 增加对话框阴影 */
+    border: 3px solid #808080; /* 调整对话框边框颜色和粗细 */
+    animation: slideIn 0.4s ease-out; /* 调整对话框进入动画 */
+    .el-dialog__header {
+      border-bottom: 1px solid #ebeef5; /* 对话框头部下边框 */
+      padding: 15px 20px; /* 对话框头部内边距 */
+      font-weight: bold; /* 对话框标题加粗 */
+      background-color: #f9f9f9; /* 调整浅色背景 */
+    }
+    .el-dialog__body {
+      padding: 20px; /* 对话框内容内边距 */
+    }
+    .el-dialog__footer {
+      border-top: 1px solid #ebeef5; /* 对话框底部上边框 */
+      padding: 10px 20px; /* 对话框底部内边距 */
+      background-color: #f9f9f9; /* 调整浅色背景 */
+    }
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-40px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 为对话框遮罩层添加模糊效果 */
+.el-overlay-dialog {
+  backdrop-filter: blur(12px); /* 增加模糊效果 */
+  background-color: rgba(0, 0, 0, 0.6); /* 调整背景颜色和透明度 */
+}
+
+/* 调整审核对话框中的输入框样式 */
+.audit-actions .el-input__inner,
+.audit-actions .el-textarea__inner {
+  border-radius: 4px; /* 输入框圆角 */
+}
+
+/* 添加一些hover效果到表格行 */
+.el-table__row {
+  transition: background-color 0.3s ease, box-shadow 0.3s ease; /* 添加过渡效果 */
+}
+
+.el-table__row:hover {
+  background-color: #eef1f6 !important; /* 鼠标悬停时改变背景色 */
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); /* 鼠标悬停时添加细微阴影 */
+}
+
+/* 添加选中行样式 */
+.el-table__row.is-checked {
+  background-color: #d9ecff !important; /* 选中行背景色 */
+  font-weight: bold; /* 选中行字体加粗 */
+}
+
+/* 调整功能按钮区域的间距 */
+.mb8 {
+  margin-bottom: 15px; /* 增加功能按钮区域底部间距 */
+}
+
+/* 为搜索框和选择框添加过渡效果 */
+.el-input__inner,
+.el-select__wrapper {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease; /* 添加过渡效果 */
+}
+
+.el-input__inner:focus,
+.el-select__wrapper.is-focused {
+  border-color: #409eff; /* 聚焦时边框颜色 */
+  box-shadow: 0 0 0 6px rgba(64, 158, 255, 0.6); /* 聚焦时添加更明显的阴影和光晕效果 */
+}
+
+/* 调整对话框底部按钮样式 */
+.dialog-footer .el-button {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* 添加过渡效果 */
+}
+
+.dialog-footer .el-button:hover {
+  transform: translateY(-3px); /* 鼠标悬停时向上移动3px */
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15); /* 添加阴影 */
 }
 </style>
