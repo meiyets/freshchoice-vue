@@ -227,7 +227,7 @@
             <div class="review-user">
               <el-avatar
                 :size="40"
-                :src="review.sysUser.avatar || defaultAvatar"
+                :src="review.isAnonymous ? defaultAvatar : (review.sysUser.avatar || defaultAvatar)"
               ></el-avatar>
               <span class="user-name">{{
                 review.isAnonymous ? "匿名用户" : review.sysUser.nickName
@@ -236,8 +236,8 @@
 
             <!-- 评价内容 -->
             <div class="review-content">
-              <!-- 评分 -->
-              <div class="review-rating">
+              <!-- 评分和日期 -->
+              <div class="review-rating-date">
                 <el-rate
                   v-model="review.rating"
                   disabled
@@ -249,6 +249,7 @@
               <!-- 评价文字 -->
               <div class="review-text">{{ review.content }}</div>
             </div>
+
           </div>
         </div>
 
@@ -1477,18 +1478,27 @@ onMounted(() => {
 }
 
 .review-item {
-  display: flex;
-  padding: 20px 0;
-  border-bottom: 1px solid #ebeef5;
+  display: flex; /* 使子元素 (review-user 和 review-content) 水平排列 */
+  margin-bottom: 20px; /* 评价项之间的间距 */
+  /* 根据需要添加其他样式 */
 }
 
 .review-user {
-  margin-right: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-shrink: 0; /* 防止用户区域缩小 */
+  margin-right: 20px; /* 用户区域和评价内容之间的间距 */
+  display: flex; /* 使头像和名称垂直居中 */
+  flex-direction: column; /* 使头像和名称垂直排列 */
+  align-items: center; /* 水平居中头像和名称 */
+  width: 80px; /* 给用户区域一个固定或最小宽度，确保对齐 */
+  text-align: center; /* 文字居中 */
+  /* 根据需要调整宽度 */
 }
-
+.review-user .user-name {
+  margin-top: 5px; /* 名称与头像的间距 */
+  font-size: 14px; /* 调整字体大小 */
+  color: #606266; /* 调整字体颜色 */
+  word-break: break-word; /* 长名称换行 */
+}
 .user-name {
   margin-top: 10px;
   font-size: 14px;
@@ -1501,9 +1511,17 @@ onMounted(() => {
 }
 
 .review-content {
-  flex: 1;
+  flex-grow: 1; /* 让评价内容区域占据剩余空间 */
+  display: flex; /* 使评分/日期和评价文字垂直排列 */
+  flex-direction: column;
+  /* 根据需要添加其他样式 */
 }
-
+.review-rating-date {
+  display: flex; /* 使评分和日期水平排列 */
+  align-items: center; /* 垂直居中对齐 */
+  gap: 10px; /* 评分和日期之间的间距 */
+  /* 根据需要添加其他样式 */
+}
 .review-rating {
   display: flex;
   align-items: center;
@@ -1511,16 +1529,15 @@ onMounted(() => {
 }
 
 .review-date {
-  margin-left: 10px;
-  font-size: 12px;
+  font-size: 14px;
   color: #909399;
 }
 
 .review-text {
+  margin-top: 10px; /* 与评分/日期部分的间距 */
   font-size: 14px;
   color: #303133;
-  line-height: 1.6;
-  margin-bottom: 15px;
+  line-height: 1.5;
 }
 
 .review-images {
