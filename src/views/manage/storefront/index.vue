@@ -487,8 +487,8 @@ function getStoreInfo() {
       router.replace(newRoute);
     })
     .catch((error) => {
-      console.error("获取店铺信息失败:", error);
-      ElMessage.error("店铺信息加载失败");
+      ElMessage.error("店铺信息加载失败，请先申请店铺");
+      router.push("/main/apply");
     });
 }
 

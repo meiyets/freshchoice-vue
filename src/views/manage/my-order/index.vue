@@ -114,6 +114,11 @@
 
               <!-- 操作按钮区域 -->
               <div class="order-actions">
+                <!-- 添加订单创建时间 -->
+                <span class="order-create-time">
+                  <strong>创建时间: {{ order.order.createTime }}</strong>
+                </span>
+
                 <!-- 待发货=>取消订单 -->
                 <el-button
                   v-if="order.order.orderStatus === 1"
@@ -389,8 +394,13 @@ const orderGroups = computed(() => {
     grouped[parentId].orders.push(orderItem);
   });
 
-  // 返回分组后的 对象数组
-  return Object.values(grouped);
+  // 返回分组后的 对象数组，并按照组内第一个订单的创建时间从新到旧排序
+  return Object.values(grouped).sort((a, b) => {
+    // 假设每个组至少有一个订单，且同一组订单创建时间一致
+    const timeA = new Date(a.orders[0].order.createTime).getTime();
+    const timeB = new Date(b.orders[0].order.createTime).getTime();
+    return timeB - timeA; // 从新到旧排序
+  });
 });
 
 // 用于存储父订单编码的映射
@@ -752,6 +762,12 @@ onMounted(() => {
   gap: 10px; /* 搜索和重置按钮之间的间距 */
 }
 
+.order-create-time {
+  margin-right: auto; /* 将创建时间推到最左侧 */
+  font-size: 14px; /* 调整字体大小 */
+  color: #606266; /* 调整字体颜色 */
+  white-space: nowrap; /* 防止文本换行 */
+}
 /* 订单列表内容区域 */
 .order-content {
   min-height: 300px; /* 确保内容区域有最小高度 */
