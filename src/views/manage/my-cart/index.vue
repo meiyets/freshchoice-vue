@@ -1021,6 +1021,7 @@ async function handleCreateOrder() {
                     priceUnitSnapshot: item.product.priceUnit,
                     productPriceSnapshot: item.product.price,
                     productMainUrlSnapshot: item.product.mainImg,
+                    cartItemId: item.cartItemId,//即使是完全相同的购物车项，提交后也不会丢失
                   }).catch((detailError) => {
                     console.error("Error adding order detail:", detailError);
                     ElMessage.error(
