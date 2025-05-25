@@ -792,6 +792,21 @@ const handleReviewCurrentChange = (val) => {
   getProductReviews();
 };
 
+function getProductReviews(){
+            // 获取评价列表
+          listReviewById({
+            productId: productId.value,
+            pageNum: reviewParams.pageNum,
+            pageSize: reviewParams.pageSize,
+          }).then((res) => {
+            if (res.code === 200) {
+              reviews.value = res.rows;
+              reviewTotal.value = res.total;
+            } else {
+              ElMessage.error(res.msg || "获取评价列表失败");
+            }
+          });
+}
 // 返回上一页
 const goBack = () => {
   router.push({ path: `/main/browse/index` });

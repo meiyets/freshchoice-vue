@@ -472,6 +472,13 @@ async function getList() {
       // 获取待过滤的订单数据
       let filteredOrders = response.rows;
 
+      // 根据创建时间排序
+      filteredOrders.sort((a, b) => {
+        const timeA = new Date(a.order.createTime).getTime();
+        const timeB = new Date(b.order.createTime).getTime();
+        return timeB - timeA; // 从新到旧排序
+      });
+
       // 按订单状态过滤
       if (queryParams.orderStatus !== null && queryParams.orderStatus !== "") {
         filteredOrders = filteredOrders.filter(

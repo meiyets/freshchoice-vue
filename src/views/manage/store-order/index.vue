@@ -101,6 +101,12 @@
                     <!-- 用户图标 -->
                     用户ID: {{ order.order.userId }}
                   </span>
+                  <!-- **新增：订单创建时间** -->
+                  <span class="separator">|</span>
+                  <span>
+                    <el-icon><Clock /></el-icon>
+                    创建时间: {{ order.order.createTime }}
+                  </span>
                 </div>
                 <!-- 订单状态单独显示 -->
                 <div class="order-status">
@@ -284,8 +290,14 @@ const orderGroups = computed(() => {
     grouped[parentId].orders.push(orderItem);
   });
 
-  // 返回分组后的 对象数组
-  return Object.values(grouped);
+  // 返回分组后的 对象数组，并按照组内第一个订单的创建时间从新到旧排序
+  return Object.values(grouped).sort((a, b) => {
+    // 假设每个组至少有一个订单，且同一组订单创建时间一致
+    // 使用组内第一个订单的创建时间进行排序
+    const timeA = new Date(a.orders[0].order.createTime).getTime();
+    const timeB = new Date(b.orders[0].order.createTime).getTime();
+    return timeB - timeA; // 从新到旧排序
+  });
 });
 
 // 用于存储父订单编码的映射
@@ -356,6 +368,13 @@ async function getList() {
     if (response.code === 200) {
       // 获取待过滤的订单数据
       let filteredOrders = response.rows;
+
+      // 根据创建时间排序
+      filteredOrders.sort((a, b) => {
+        const timeA = new Date(a.order.createTime).getTime();
+        const timeB = new Date(b.order.createTime).getTime();
+        return timeB - timeA; // 从新到旧排序
+      });
 
       // 按订单状态过滤
       if (queryParams.orderStatus !== null && queryParams.orderStatus !== "") {

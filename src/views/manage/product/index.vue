@@ -492,7 +492,10 @@
           <div class="product-core-info">
             <!-- 名称、编号、状态 -->
             <div class="product-title">
-              <h2>{{ form.productName }}</h2>
+              <!-- 点击后跳转详情页 -->
+              <router-link :to="'/main/browse/' + form.productId">
+                <h2>{{ form.productName }}</h2>
+              </router-link>
               <span class="product-code">编号：{{ form.productCode }}</span>
               <dict-tag
                 :options="product_status"
