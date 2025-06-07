@@ -205,10 +205,19 @@
         <!-- 产品状态 -->
         <el-table-column label="产品状态" align="center" prop="productStatus">
           <template #default="scope">
-            <dict-tag
-              :options="product_status"
-              :value="scope.row.productStatus"
-            />
+            <div
+              :class="{ clickable: scope.row.productStatus != 2 }"
+              @click="
+                scope.row.productStatus != 2
+                  ? handleStatusClick(scope.row)
+                  : null
+              "
+            >
+              <dict-tag
+                :options="product_status"
+                :value="scope.row.productStatus"
+              />
+            </div>
           </template>
         </el-table-column>
 
@@ -944,6 +953,28 @@ function handleUpdate(row) {
   });
 }
 
+/** 点击上架产品变成下架 */
+function handleStatusClick(row) {
+  // 清空表单
+  reset();
+  // 获取当前对象的数据
+  form.value = row;
+  // 改变状态（直接影响了前端）
+  form.value.productStatus = form.value.productStatus == 0 ? 1 : 0;
+  // 提交
+  updateProduct({
+    // 肯定是传多了，但是不管了
+    product: {
+      ...form.value,
+      storeName: store.value.storeName,
+    },
+    tagIds: form.value.tagIds,
+  }).then(() => {
+    proxy.$modal.msgSuccess("修改成功");
+    // getList();
+  });
+}
+
 /** 提交按钮 */
 function submitForm() {
   proxy.$refs["productRef"].validate((valid) => {
@@ -1538,5 +1569,14 @@ getTagList();
   display: inline-block;
   vertical-align: middle;
   text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5); /* 文字阴影 */
+}
+.clickable {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.clickable:hover {
+  opacity: 0.8;
+  transform: scale(1.05);
 }
 </style>
