@@ -135,19 +135,19 @@
           <div class="product-card" @click="handleViewDetail(item)">
             <!-- 产品图片 -->
             <div class="product-img">
-                <el-image
-                  :src="item.mainImg"
-                  fit="cover"
-                  :preview-src-list="[item.mainImg]"
-                  loading="lazy"
-                >
-                  <!-- 产品图片报错 -->
-                  <template #error>
-                    <div class="image-error">
-                      <el-icon><picture-filled /></el-icon>
-                    </div>
-                  </template>
-                </el-image>
+              <el-image
+                :src="item.mainImg"
+                fit="cover"
+                :preview-src-list="[item.mainImg]"
+                loading="lazy"
+              >
+                <!-- 产品图片报错 -->
+                <template #error>
+                  <div class="image-error">
+                    <el-icon><picture-filled /></el-icon>
+                  </div>
+                </template>
+              </el-image>
 
               <!-- 产品状态 -->
               <div class="product-status" v-if="item.productStatus !== 0">
@@ -320,7 +320,25 @@ const getProductList = async () => {
     listProduct(queryParams).then((res) => {
       if (res.code === 200) {
         productList.value = res.rows;
-        total.value = res.total;
+        // 这里得再申请一次获取真正的总数
+        // 临时保存页码和页数
+        const currentPage = queryParams.pageNum;
+        const pageSize = queryParams.pageSize;
+
+        // 重置页码和页数
+        queryParams.pageNum = 1;
+        queryParams.pageSize = 10000;
+        listProduct(queryParams).then((res) => {
+          if (res.code === 200) {
+            total.value = res.total;
+            // 恢复页码和页数
+            queryParams.pageNum = currentPage;
+            queryParams.pageSize = pageSize;
+          } else {
+            ElMessage.error(res.message);
+          }
+          loading.value = false;
+        });
       } else {
         ElMessage.error(res.message);
       }
@@ -398,7 +416,7 @@ const handleSizeChange = (val) => {
 const handleViewDetail = (item) => {
   // 跳转到产品详情页
   router.push({
-    name: 'BrowseDetail',
+    name: "BrowseDetail",
     params: { productId: item.productId },
   });
 };

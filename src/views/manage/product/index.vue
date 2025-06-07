@@ -93,7 +93,6 @@
           plain
           icon="Collection"
           @click="applyCategory"
-          v-hasPermi="['manage:category:add']"
           style="
             background: linear-gradient(45deg, #6a82fb, #fc5c7d);
             border-color: transparent;
@@ -1041,8 +1040,18 @@ function getList() {
     },
   }).then((response) => {
     productList.value = response.rows;
-    total.value = response.total;
-    loading.value = false;
+    // 后台返回的数据总是存在一些问题，因此来一次很全的请求
+    listProduct({
+      ...queryParams.value,
+      pageNum: 1,
+      pageSize: 10000,
+      params: {
+        isAlert: isAlert.value,
+      },
+    }).then((response) => {
+      total.value = response.total;
+      loading.value = false;
+    });
   });
 }
 

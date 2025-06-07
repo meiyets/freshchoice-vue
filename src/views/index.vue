@@ -73,7 +73,7 @@
 
     <!-- 底部信息区域 -->
     <footer class="footer-section">
-      <p>&copy; 2023 鲜果优选. All rights reserved.</p>
+      <p>&copy; 2025 鲜果优选. All rights reserved.</p>
     </footer>
   </div>
 </template>
