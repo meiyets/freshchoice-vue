@@ -340,9 +340,10 @@ function handleQuery() {
 function resetQuery() {
   proxy.resetForm("queryRef");
   queryParams.productName = undefined;
-  queryParams.storeName = undefined;
-  queryParams.orderBy = "create_time";
-  queryParams.isDesc = "true";
+  queryParams.params.storeName = undefined;
+  queryParams.params.productName = undefined;
+  queryParams.params.orderBy = "f.create_time";
+  queryParams.params.isDesc = "true";
   handleQuery();
 }
 

@@ -379,7 +379,7 @@ const resetQuery = () => {
 
   queryParams.params.minPrice = undefined;
   queryParams.params.maxPrice = undefined;
-  queryParams.tagIds = [];
+  queryParams.params.tagIds = [];
 
   // 排序字段
   queryParams.params.orderBy = "create_time";

@@ -521,7 +521,8 @@ function handleDelete(row) {
       getList();
       proxy.$modal.msgSuccess("删除成功");
     })
-    .catch(() => {});
+    .catch(() => { });
+    getList();
 }
 
 /**
