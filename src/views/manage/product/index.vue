@@ -1033,6 +1033,9 @@ function handleExport() {
     "manage/product/export",
     {
       ...queryParams.value,
+      params: {
+        isAlert: isAlert.value,
+      },
     },
     `product_${new Date().getTime()}.xlsx`
   );
